@@ -4,6 +4,7 @@ import android.app.assist.AssistStructure
 import android.app.assist.AssistStructure.ViewNode
 import android.os.CancellationSignal
 import android.service.autofill.*
+import android.view.View
 import android.view.autofill.AutofillId
 import android.view.autofill.AutofillValue
 import android.widget.RemoteViews
@@ -44,8 +45,8 @@ class PassVaultAutofillService : AutofillService() {
 
             // Identificar campo de usuario / correo
             if (usernameId == null) {
-                if (hints.contains(ViewNode.AUTOFILL_HINT_USERNAME) ||
-                    hints.contains(ViewNode.AUTOFILL_HINT_EMAIL_ADDRESS) ||
+                if (hints.contains(View.AUTOFILL_HINT_USERNAME) ||
+                    hints.contains(View.AUTOFILL_HINT_EMAIL_ADDRESS) ||
                     idEntry.contains("user") || idEntry.contains("email") || idEntry.contains("login")
                 ) {
                     usernameId = node.autofillId
@@ -54,7 +55,7 @@ class PassVaultAutofillService : AutofillService() {
 
             // Identificar campo de contraseña
             if (passwordId == null) {
-                if (hints.contains(ViewNode.AUTOFILL_HINT_PASSWORD) ||
+                if (hints.contains(View.AUTOFILL_HINT_PASSWORD) ||
                     idEntry.contains("pass") || idEntry.contains("clave") || idEntry.contains("pwd")
                 ) {
                     passwordId = node.autofillId
@@ -154,7 +155,7 @@ class PassVaultAutofillService : AutofillService() {
 
         fun extractValues(node: ViewNode) {
             if (node.webDomain != null) {
-                domainOrPackage = node.webDomain
+                domainOrPackage = node.webDomain ?: structure.activityComponent.packageName
             }
 
             val hints = node.autofillHints?.toList() ?: emptyList()
@@ -162,7 +163,7 @@ class PassVaultAutofillService : AutofillService() {
             val idEntry = node.idEntry?.lowercase() ?: ""
 
             if (detectedPassword.isEmpty()) {
-                if (hints.contains(ViewNode.AUTOFILL_HINT_PASSWORD) ||
+                if (hints.contains(View.AUTOFILL_HINT_PASSWORD) ||
                     idEntry.contains("pass") || idEntry.contains("clave") || idEntry.contains("pwd")
                 ) {
                     if (text.isNotEmpty()) detectedPassword = text
@@ -170,8 +171,8 @@ class PassVaultAutofillService : AutofillService() {
             }
 
             if (detectedUsername.isEmpty()) {
-                if (hints.contains(ViewNode.AUTOFILL_HINT_USERNAME) ||
-                    hints.contains(ViewNode.AUTOFILL_HINT_EMAIL_ADDRESS) ||
+                if (hints.contains(View.AUTOFILL_HINT_USERNAME) ||
+                    hints.contains(View.AUTOFILL_HINT_EMAIL_ADDRESS) ||
                     idEntry.contains("user") || idEntry.contains("email") || idEntry.contains("login")
                 ) {
                     if (text.isNotEmpty()) detectedUsername = text

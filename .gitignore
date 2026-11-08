@@ -7,7 +7,8 @@ build
 .env.local
 *.sqlite
 *.sqlite-journal
-data/
+/data/
+apps/server/data/
 
 # Android & Gradle
 .gradle/

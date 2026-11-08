@@ -301,7 +301,7 @@ fun CreateItemScreen(
                             expYear = parts.getOrNull(1) ?: "",
                             cvv = cardCvv,
                             pin = cardPin,
-                            notes = [if (cardZip.isNotBlank()) "ZIP: $cardZip" else "", notes].filter { it.isNotBlank() }.joinToString("\n")
+                            notes = listOf(if (cardZip.isNotBlank()) "ZIP: $cardZip" else "", notes).filter { it.isNotBlank() }.joinToString("\n")
                         )
                     } else null
                     val noteData = if (type == "note") NoteData(text = noteContent) else null
