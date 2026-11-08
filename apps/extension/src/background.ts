@@ -427,6 +427,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return { success: true };
       }
 
+      case 'LOGOUT': {
+        state.isUnlocked = false;
+        state.isOfflineMode = false;
+        state.token = null;
+        state.vaultKey = null;
+        state.items = [];
+        await chrome.storage.session?.remove(['session']);
+        await chrome.storage.local.remove(['cachedVault', 'email']);
+        if (syncWebSocket) syncWebSocket.close();
+        return { success: true };
+      }
+
       case 'RESET_ACCOUNT': {
         const { email, serverUrl } = message;
         try {

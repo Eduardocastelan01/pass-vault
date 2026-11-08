@@ -11,15 +11,17 @@ import {
 const viewAuth = document.getElementById('view-auth')!;
 const viewVault = document.getElementById('view-vault')!;
 const viewDetail = document.getElementById('view-detail')!;
+const viewAccount = document.getElementById('view-account')!;
 
 // Auth
 const authServer = document.getElementById('auth-server') as HTMLInputElement;
 const authEmail = document.getElementById('auth-email') as HTMLInputElement;
 const authPassword = document.getElementById('auth-password') as HTMLInputElement;
 const authError = document.getElementById('auth-error')!;
-const btnAuthSubmit = document.getElementById('btn-auth-submit')!;
+const btnAuthSubmit = document.getElementById('btn-auth-submit') as HTMLButtonElement;
 const btnToggleAuthMode = document.getElementById('btn-toggle-auth-mode')!;
 const authTitle = document.getElementById('auth-title')!;
+const btnForgotCreds = document.getElementById('btn-forgot-creds')!;
 
 // Header NordPass
 const nordHeader = document.getElementById('nord-header')!;
@@ -27,17 +29,29 @@ const btnVaultMenu = document.getElementById('btn-vault-menu')!;
 const vaultDropdown = document.getElementById('vault-dropdown')!;
 const selectedVaultLabel = document.getElementById('selected-vault-label')!;
 const userAvatar = document.getElementById('user-avatar')!;
-const btnForgotCreds = document.getElementById('btn-forgot-creds')!;
 
-// Búsqueda y Lista
+// Submenú Cuenta (Image 4)
+const btnAccountBack = document.getElementById('btn-account-back')!;
+const accountAvatarLarge = document.getElementById('account-avatar-large')!;
+const accountEmailDisplay = document.getElementById('account-email-display')!;
+const btnAccountAddNew = document.getElementById('btn-account-add-new')!;
+const btnAccountLock = document.getElementById('btn-account-lock')!;
+const btnAccountLogout = document.getElementById('btn-account-logout')!;
+
+// Búsqueda y Filtros de Ordenación (Image 5)
 const vaultSearch = document.getElementById('vault-search') as HTMLInputElement;
-const btnSort = document.getElementById('btn-sort')!;
+const btnSortToggle = document.getElementById('btn-sort-toggle')!;
 const sortLabel = document.getElementById('sort-label')!;
+const sortDropdownMenu = document.getElementById('sort-dropdown-menu')!;
+const checkOrderAsc = document.getElementById('check-order-asc')!;
+const checkOrderDesc = document.getElementById('check-order-desc')!;
+const checkSortTitle = document.getElementById('check-sort-title')!;
+const checkSortLast = document.getElementById('check-sort-last')!;
 const itemsCounter = document.getElementById('items-counter')!;
 const itemsList = document.getElementById('items-list')!;
 
-// Bottom Bar
-const btnSettings = document.getElementById('btn-settings')!;
+// Bottom Bar (Image 1 y 3)
+const btnSettingsOpen = document.getElementById('btn-settings-open')!;
 const btnSync = document.getElementById('btn-sync')!;
 const btnAddItem = document.getElementById('btn-add-item')!;
 const btnFullscreen = document.getElementById('btn-fullscreen')!;
@@ -56,8 +70,11 @@ const detailNotesGroup = document.getElementById('detail-notes-group')!;
 const btnToggleDetailPass = document.getElementById('btn-toggle-detail-pass')!;
 const btnCopyUsername = document.getElementById('btn-copy-username')!;
 const btnCopyPassword = document.getElementById('btn-copy-password')!;
+const btnActionShare = document.getElementById('btn-action-share')!;
+const btnActionAttach = document.getElementById('btn-action-attach')!;
+const btnActionMore = document.getElementById('btn-action-more')!;
 
-// Modal Agregar
+// Modal Agregar / Editar
 const modalAdd = document.getElementById('modal-add')!;
 const btnCloseModal = document.getElementById('btn-close-modal')!;
 const addName = document.getElementById('add-name') as HTMLInputElement;
@@ -65,17 +82,24 @@ const addUsername = document.getElementById('add-username') as HTMLInputElement;
 const addPassword = document.getElementById('add-password') as HTMLInputElement;
 const addUri = document.getElementById('add-uri') as HTMLInputElement;
 const addNotes = document.getElementById('add-notes') as HTMLTextAreaElement;
+const btnToggleAddPass = document.getElementById('btn-toggle-add-pass')!;
 const btnQuickGen = document.getElementById('btn-quick-gen')!;
-const btnSaveNew = document.getElementById('btn-save-new')!;
+const addStrengthFeedback = document.getElementById('add-strength-feedback')!;
+const btnSaveNew = document.getElementById('btn-save-new') as HTMLButtonElement;
 
 const toastEl = document.getElementById('toast')!;
 
+// Estado
 let currentItems: DecryptedVaultItem[] = [];
 let isRegisterMode = false;
 let currentDetailItem: DecryptedVaultItem | null = null;
-let isPasswordVisible = false;
-let sortAscending = false;
+let isPasswordVisibleInDetail = false;
+let isPasswordVisibleInAdd = false;
 let editingItemId: string | null = null;
+let currentVaultSection = 'vault'; // 'vault' | 'shared' | 'trash' | 'folders'
+let sortField: 'title' | 'last_used' = 'last_used';
+let sortOrder: 'asc' | 'desc' = 'desc';
+let userEmailAddress = '';
 
 function showToast(msg: string) {
   toastEl.textContent = msg;
@@ -106,6 +130,16 @@ function getFaviconUrl(domain: string): string {
   return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`;
 }
 
+function updateUserInitials(email: string) {
+  userEmailAddress = email;
+  const parts = email.split('@')[0];
+  const initials = parts.slice(0, 2).charAt(0).toUpperCase() + parts.slice(0, 2).charAt(1).toLowerCase();
+  const displayInitials = initials || 'Je';
+  userAvatar.textContent = displayInitials;
+  accountAvatarLarge.textContent = displayInitials;
+  accountEmailDisplay.textContent = email;
+}
+
 // Inicialización
 async function init() {
   const status = await chrome.runtime.sendMessage({ type: 'GET_STATUS' });
@@ -113,9 +147,7 @@ async function init() {
   if (status.serverUrl) authServer.value = status.serverUrl;
   if (status.email) {
     authEmail.value = status.email;
-    const parts = status.email.split('@')[0];
-    const initials = parts.slice(0, 2).charAt(0).toUpperCase() + parts.slice(0, 2).charAt(1).toLowerCase();
-    userAvatar.textContent = initials || 'Je';
+    updateUserInitials(status.email);
   }
 
   if (status.isUnlocked) {
@@ -142,6 +174,7 @@ function showAuthView() {
   viewAuth.style.display = 'flex';
   viewVault.style.display = 'none';
   viewDetail.style.display = 'none';
+  viewAccount.style.display = 'none';
 }
 
 function showVaultView() {
@@ -149,30 +182,143 @@ function showVaultView() {
   viewAuth.style.display = 'none';
   viewVault.style.display = 'flex';
   viewDetail.style.display = 'none';
+  viewAccount.style.display = 'none';
 }
 
-// Menú desplegable Vault (Image 1)
+function showAccountView() {
+  nordHeader.style.display = 'none';
+  viewAuth.style.display = 'none';
+  viewVault.style.display = 'none';
+  viewDetail.style.display = 'none';
+  viewAccount.style.display = 'flex';
+}
+
+// ================= MENÚ VAULT (Image 1) =================
 btnVaultMenu.addEventListener('click', (e) => {
   e.stopPropagation();
+  sortDropdownMenu.style.display = 'none';
   vaultDropdown.style.display = vaultDropdown.style.display === 'none' ? 'flex' : 'none';
-});
-
-document.addEventListener('click', (e) => {
-  if (!vaultDropdown.contains(e.target as Node)) {
-    vaultDropdown.style.display = 'none';
-  }
 });
 
 document.querySelectorAll('.nord-menu-item').forEach((item) => {
   item.addEventListener('click', () => {
-    const text = item.textContent?.trim() || 'Vault';
-    selectedVaultLabel.textContent = text;
+    document.querySelectorAll('.nord-menu-item').forEach((i) => i.classList.remove('active'));
+    item.classList.add('active');
+
+    const view = item.getAttribute('data-view') || 'vault';
+    currentVaultSection = view;
+
+    const labelMap: Record<string, string> = {
+      vault: 'Vault',
+      shared: 'Shared Items',
+      trash: 'Trash',
+      folders: 'Folders',
+    };
+    selectedVaultLabel.textContent = labelMap[view] || 'Vault';
     vaultDropdown.style.display = 'none';
     renderItems();
   });
 });
 
-// Autenticación
+// ================= CUENTA DE USUARIO (Image 4) =================
+userAvatar.addEventListener('click', () => {
+  vaultDropdown.style.display = 'none';
+  sortDropdownMenu.style.display = 'none';
+  showAccountView();
+});
+
+btnAccountBack.addEventListener('click', () => {
+  showVaultView();
+});
+
+btnAccountLock.addEventListener('click', async () => {
+  await chrome.runtime.sendMessage({ type: 'LOCK' });
+  showAuthView();
+  authPassword.value = '';
+  showToast('Bóveda bloqueada');
+});
+
+btnAccountLogout.addEventListener('click', async () => {
+  const ok = confirm('¿Deseas cerrar sesión en esta extensión?');
+  if (ok) {
+    await chrome.runtime.sendMessage({ type: 'LOGOUT' });
+    showAuthView();
+    authPassword.value = '';
+    showToast('Sesión cerrada');
+  }
+});
+
+btnAccountAddNew.addEventListener('click', () => {
+  isRegisterMode = true;
+  authTitle.textContent = 'Crear Nueva Cuenta';
+  btnAuthSubmit.textContent = 'Crear Bóveda Segura';
+  btnToggleAuthMode.textContent = 'Ya tengo cuenta (Iniciar sesión)';
+  authEmail.value = '';
+  authPassword.value = '';
+  showAuthView();
+});
+
+// ================= ORDENACIÓN (Image 5) =================
+btnSortToggle.addEventListener('click', (e) => {
+  e.stopPropagation();
+  vaultDropdown.style.display = 'none';
+  sortDropdownMenu.style.display = sortDropdownMenu.style.display === 'none' ? 'flex' : 'none';
+});
+
+// Opciones de orden: Ascending / Descending
+document.querySelectorAll('.nord-sort-option[data-order]').forEach((opt) => {
+  opt.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const order = opt.getAttribute('data-order') as 'asc' | 'desc';
+    sortOrder = order;
+
+    if (order === 'asc') {
+      checkOrderAsc.style.visibility = 'visible';
+      checkOrderDesc.style.visibility = 'hidden';
+    } else {
+      checkOrderAsc.style.visibility = 'hidden';
+      checkOrderDesc.style.visibility = 'visible';
+    }
+
+    sortDropdownMenu.style.display = 'none';
+    renderItems();
+  });
+});
+
+// Opciones de orden: Title / Last Used
+document.querySelectorAll('.nord-sort-option[data-sort]').forEach((opt) => {
+  opt.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const sort = opt.getAttribute('data-sort') as 'title' | 'last_used';
+    sortField = sort;
+
+    if (sort === 'title') {
+      checkSortTitle.style.visibility = 'visible';
+      checkSortLast.style.visibility = 'hidden';
+      sortLabel.textContent = 'Sort By Title';
+    } else {
+      checkSortTitle.style.visibility = 'hidden';
+      checkSortLast.style.visibility = 'visible';
+      sortLabel.textContent = 'Sort By Last Used';
+    }
+
+    sortDropdownMenu.style.display = 'none';
+    renderItems();
+  });
+});
+
+// Cerrar menús al hacer clic fuera
+document.addEventListener('click', (e) => {
+  const target = e.target as Node;
+  if (!vaultDropdown.contains(target) && !btnVaultMenu.contains(target)) {
+    vaultDropdown.style.display = 'none';
+  }
+  if (!sortDropdownMenu.contains(target) && !btnSortToggle.contains(target)) {
+    sortDropdownMenu.style.display = 'none';
+  }
+});
+
+// ================= AUTENTICACIÓN =================
 btnToggleAuthMode.addEventListener('click', () => {
   isRegisterMode = !isRegisterMode;
   if (isRegisterMode) {
@@ -234,7 +380,7 @@ btnAuthSubmit.addEventListener('click', async () => {
   }
 
   btnAuthSubmit.textContent = 'Derivando claves criptográficas...';
-  (btnAuthSubmit as HTMLButtonElement).disabled = true;
+  btnAuthSubmit.disabled = true;
 
   try {
     const actionType = isRegisterMode ? 'REGISTER' : 'LOGIN';
@@ -247,10 +393,7 @@ btnAuthSubmit.addEventListener('click', async () => {
 
     if (res.error) throw new Error(res.error);
 
-    const parts = email.split('@')[0];
-    const initials = parts.slice(0, 2).charAt(0).toUpperCase() + parts.slice(0, 2).charAt(1).toLowerCase();
-    userAvatar.textContent = initials;
-
+    updateUserInitials(email);
     showVaultView();
     await loadItems();
     showToast(res.offline ? '✓ Bóveda accesible (Modo Offline)' : '✓ Bóveda sincronizada');
@@ -258,7 +401,7 @@ btnAuthSubmit.addEventListener('click', async () => {
     authError.textContent = err.message || 'Error al autenticar';
     authError.style.display = 'block';
   } finally {
-    (btnAuthSubmit as HTMLButtonElement).disabled = false;
+    btnAuthSubmit.disabled = false;
     btnAuthSubmit.textContent = isRegisterMode ? 'Crear Bóveda Segura' : 'Desbloquear';
   }
 });
@@ -271,8 +414,44 @@ async function loadItems() {
   }
 }
 
-// Renderizar lista estilo NordPass (Image 1)
+// ================= RENDERIZADO DE ELEMENTOS =================
 function renderItems() {
+  if (currentVaultSection === 'shared') {
+    itemsCounter.textContent = '0 items';
+    itemsList.innerHTML = `
+      <div style="text-align: center; color: var(--text-muted); padding: 48px 16px; font-size: 13px;">
+        <div style="font-size: 28px; margin-bottom: 8px;">👥</div>
+        <strong>Shared Items</strong>
+        <p style="margin-top: 6px; font-size: 12px;">No tienes elementos compartidos todavía.</p>
+      </div>
+    `;
+    return;
+  }
+
+  if (currentVaultSection === 'trash') {
+    itemsCounter.textContent = '0 items';
+    itemsList.innerHTML = `
+      <div style="text-align: center; color: var(--text-muted); padding: 48px 16px; font-size: 13px;">
+        <div style="font-size: 28px; margin-bottom: 8px;">🗑️</div>
+        <strong>Trash</strong>
+        <p style="margin-top: 6px; font-size: 12px;">La papelera está vacía.</p>
+      </div>
+    `;
+    return;
+  }
+
+  if (currentVaultSection === 'folders') {
+    itemsCounter.textContent = '0 items';
+    itemsList.innerHTML = `
+      <div style="text-align: center; color: var(--text-muted); padding: 48px 16px; font-size: 13px;">
+        <div style="font-size: 28px; margin-bottom: 8px;">📁</div>
+        <strong>Folders</strong>
+        <p style="margin-top: 6px; font-size: 12px;">No has creado carpetas aún.</p>
+      </div>
+    `;
+    return;
+  }
+
   const query = vaultSearch.value.toLowerCase().trim();
 
   let filtered = currentItems.filter((item) => {
@@ -282,9 +461,15 @@ function renderItems() {
     return nameMatch || userMatch;
   });
 
-  if (sortAscending) {
-    filtered.sort((a, b) => a.name.localeCompare(b.name));
-  }
+  filtered.sort((a, b) => {
+    if (sortField === 'title') {
+      return sortOrder === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
+    } else {
+      const timeA = new Date(a.updatedAt || a.createdAt).getTime();
+      const timeB = new Date(b.updatedAt || b.createdAt).getTime();
+      return sortOrder === 'asc' ? timeA - timeB : timeB - timeA;
+    }
+  });
 
   itemsCounter.textContent = `${filtered.length} items`;
   itemsList.innerHTML = '';
@@ -347,7 +532,6 @@ function renderItems() {
       copyText(copyPassVal, 'Contraseña');
     });
 
-    // Abrir vista detallada al hacer clic en el elemento
     row.addEventListener('click', () => {
       openDetailView(item);
     });
@@ -358,16 +542,10 @@ function renderItems() {
 
 vaultSearch.addEventListener('input', renderItems);
 
-btnSort.addEventListener('click', () => {
-  sortAscending = !sortAscending;
-  sortLabel.textContent = sortAscending ? 'Sort By Name (A-Z)' : 'Sort By Last Used';
-  renderItems();
-});
-
-// Abrir Vista de Detalle (Image 2)
+// ================= VISTA DE DETALLE (Image 2) =================
 function openDetailView(item: DecryptedVaultItem) {
   currentDetailItem = item;
-  isPasswordVisible = false;
+  isPasswordVisibleInDetail = false;
 
   let domain = item.name;
   let username = '';
@@ -408,7 +586,6 @@ function openDetailView(item: DecryptedVaultItem) {
     detailNotesGroup.style.display = 'none';
   }
 
-  // Evaluar salud de la contraseña estilo NordPass
   if (password) {
     const strength = evaluatePasswordStrength(password);
     if (strength.score >= 3) {
@@ -432,9 +609,9 @@ btnDetailBack.addEventListener('click', () => {
 btnToggleDetailPass.addEventListener('click', () => {
   if (!currentDetailItem) return;
   const pass = (currentDetailItem.data as LoginData).password || '';
-  isPasswordVisible = !isPasswordVisible;
-  detailPassword.textContent = isPasswordVisible ? pass : '••••••••••••';
-  btnToggleDetailPass.textContent = isPasswordVisible ? '🙈' : '👁️';
+  isPasswordVisibleInDetail = !isPasswordVisibleInDetail;
+  detailPassword.textContent = isPasswordVisibleInDetail ? pass : '••••••••••••';
+  btnToggleDetailPass.textContent = isPasswordVisibleInDetail ? '🙈' : '👁️';
 });
 
 btnCopyUsername.addEventListener('click', () => {
@@ -449,6 +626,18 @@ btnCopyPassword.addEventListener('click', () => {
     const p = (currentDetailItem.data as LoginData).password || '';
     copyText(p, 'Contraseña');
   }
+});
+
+btnActionShare.addEventListener('click', () => {
+  showToast('Compartir: Próximamente disponible');
+});
+
+btnActionAttach.addEventListener('click', () => {
+  showToast('Adjuntos cifrados: Próximamente disponible');
+});
+
+btnActionMore.addEventListener('click', () => {
+  showToast('Opciones adicionales');
 });
 
 btnDetailEdit.addEventListener('click', () => {
@@ -466,7 +655,7 @@ btnDetailEdit.addEventListener('click', () => {
   modalAdd.style.display = 'flex';
 });
 
-// Barra Inferior (Image 1)
+// ================= BOTTOM BAR =================
 btnSync.addEventListener('click', async () => {
   btnSync.style.animation = 'spin 1s linear infinite';
   const res = await chrome.runtime.sendMessage({ type: 'SYNC_NOW' });
@@ -479,15 +668,14 @@ btnSync.addEventListener('click', async () => {
   }
 });
 
-btnSettings.addEventListener('click', () => {
-  const confirmLock = confirm('¿Deseas bloquear tu bóveda de PassVault ahora? (Por seguridad se mantendrá abierta hasta reiniciar tu laptop si cancelas)');
-  if (confirmLock) {
-    chrome.runtime.sendMessage({ type: 'LOCK' }).then(() => {
-      showAuthView();
-      authPassword.value = '';
-      showToast('Bóveda bloqueada');
-    });
-  }
+// Abre pantalla completa en pestaña dedicada (Image 2)
+btnFullscreen.addEventListener('click', () => {
+  chrome.tabs.create({ url: chrome.runtime.getURL('fullscreen.html') });
+});
+
+// Botón de Ajustes: Lleva a la pantalla completa en la sección de Settings
+btnSettingsOpen.addEventListener('click', () => {
+  chrome.tabs.create({ url: chrome.runtime.getURL('fullscreen.html#settings') });
 });
 
 btnAddItem.addEventListener('click', () => {
@@ -496,21 +684,36 @@ btnAddItem.addEventListener('click', () => {
   addUsername.value = '';
   addPassword.value = '';
   addNotes.value = '';
+  addPassword.type = 'password';
+  isPasswordVisibleInAdd = false;
+  btnToggleAddPass.textContent = '👁️';
+  addStrengthFeedback.style.display = 'none';
   btnSaveNew.textContent = 'Guardar en Bóveda';
   modalAdd.style.display = 'flex';
 });
 
-btnFullscreen.addEventListener('click', () => {
-  chrome.tabs.create({ url: chrome.runtime.getURL('popup.html') });
-});
-
-// Modal de Agregar
+// ================= MODAL AGREGAR / EDITAR =================
 btnCloseModal.addEventListener('click', () => {
   modalAdd.style.display = 'none';
 });
 
+// Botón de ver / ocultar contraseña sugerida (feedback del usuario)
+btnToggleAddPass.addEventListener('click', () => {
+  isPasswordVisibleInAdd = !isPasswordVisibleInAdd;
+  addPassword.type = isPasswordVisibleInAdd ? 'text' : 'password';
+  btnToggleAddPass.textContent = isPasswordVisibleInAdd ? '🙈' : '👁️';
+});
+
+// Botón de generación rápida de contraseña sugerida (⚡)
 btnQuickGen.addEventListener('click', () => {
-  addPassword.value = generatePassword({ length: 20 });
+  const p = generatePassword({ length: 20 });
+  addPassword.value = p;
+  // Hacerla visible inmediatamente para que el usuario pueda verla
+  addPassword.type = 'text';
+  isPasswordVisibleInAdd = true;
+  btnToggleAddPass.textContent = '🙈';
+  addStrengthFeedback.textContent = '✔ Contraseña segura sugerida generada';
+  addStrengthFeedback.style.display = 'block';
   showToast('Contraseña aleatoria generada');
 });
 

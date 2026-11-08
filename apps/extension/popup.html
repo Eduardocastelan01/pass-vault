@@ -7,7 +7,7 @@
 </head>
 <body>
   <div id="app">
-    <!-- Header estilo NordPass (Solo visible cuando la bóveda está desbloqueada) -->
+    <!-- Header estilo NordPass (Image 1 y 3) -->
     <header class="nord-header" id="nord-header" style="display: none;">
       <div class="nord-vault-selector" id="btn-vault-menu">
         <span id="selected-vault-label">Vault</span>
@@ -19,14 +19,14 @@
 
       <!-- Menú desplegable flotante de bóvedas (Image 1) -->
       <div class="nord-vault-menu" id="vault-dropdown" style="display: none;">
-        <div class="nord-menu-item" data-category="all">
+        <div class="nord-menu-item active" data-view="vault">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
           Vault
         </div>
-        <div class="nord-menu-item" data-category="shared">
+        <div class="nord-menu-item" data-view="shared">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
             <circle cx="9" cy="7" r="4"></circle>
@@ -35,7 +35,7 @@
           </svg>
           Shared Items
         </div>
-        <div class="nord-menu-item" data-category="trash">
+        <div class="nord-menu-item" data-view="trash">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="3 6 5 6 21 6"></polyline>
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -43,7 +43,7 @@
           Trash
         </div>
         <div class="nord-menu-divider"></div>
-        <div class="nord-menu-item" data-category="folders">
+        <div class="nord-menu-item" data-view="folders">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
           </svg>
@@ -52,25 +52,12 @@
       </div>
 
       <div class="nord-header-right">
-        <!-- Ícono campana -->
-        <button class="nord-icon-btn" title="Notificaciones">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-          </svg>
-        </button>
-        <!-- Ícono escudo salud -->
-        <button class="nord-icon-btn" id="btn-health" title="Salud de contraseñas">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-          </svg>
-        </button>
-        <!-- Avatar de perfil con iniciales estilo NordPass (ej. "Je") -->
+        <!-- Avatar de perfil con iniciales estilo NordPass (Image 1 y 4) -->
         <div class="nord-avatar" id="user-avatar" title="Mi Cuenta">Je</div>
       </div>
     </header>
 
-    <!-- Vista de Autenticación (Limpia, sin barras de navegación superiores) -->
+    <!-- Vista de Autenticación (Limpia, sin barras superiores) -->
     <div id="view-auth" class="nord-auth-view" style="display: none;">
       <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 4px;">
         <div style="width: 50px; height: 50px; background: #0c0f15; border-radius: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.2);">
@@ -100,7 +87,7 @@
       <div id="auth-error" style="color: var(--danger-red); font-size: 11px; display: none;"></div>
 
       <button class="nord-btn-main" id="btn-auth-submit">Desbloquear</button>
-      
+
       <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 4px;">
         <button style="background: transparent; border: none; color: var(--accent-blue); cursor: pointer; font-size: 12px; font-weight: 600;" id="btn-toggle-auth-mode">
           Crear nueva cuenta
@@ -111,7 +98,7 @@
       </div>
     </div>
 
-    <!-- Vista Principal de Bóveda (Image 1) -->
+    <!-- Vista Principal de Bóveda (Image 1 y 3) -->
     <div id="view-vault" class="nord-body-card">
       <!-- Barra de Búsqueda -->
       <div class="nord-search-container">
@@ -120,13 +107,13 @@
             <circle cx="11" cy="11" r="8"></circle>
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
-          <input type="text" id="vault-search" placeholder="Buscar en la bóveda...">
+          <input type="text" id="vault-search" placeholder="Search all items">
         </div>
       </div>
 
-      <!-- Barra de Ordenación -->
+      <!-- Barra de Ordenación con Menú Desplegable (Image 5) -->
       <div class="nord-filter-bar">
-        <button class="nord-sort-btn" id="btn-sort">
+        <button class="nord-sort-btn" id="btn-sort-toggle">
           <span id="sort-label">Sort By Last Used</span>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <polyline points="7 15 12 20 17 15"></polyline>
@@ -134,17 +121,40 @@
           </svg>
         </button>
         <span id="items-counter" style="font-size: 11px; color: var(--text-muted);">0 items</span>
+
+        <!-- Dropdown de Ordenación Flotante (Image 5) -->
+        <div id="sort-dropdown-menu" class="nord-sort-dropdown" style="display: none;">
+          <div class="nord-sort-section-title">SORTING ORDER</div>
+          <div class="nord-sort-option" data-order="asc">
+            <span class="nord-sort-check" id="check-order-asc" style="visibility: hidden;">✔</span>
+            <span>Ascending</span>
+          </div>
+          <div class="nord-sort-option" data-order="desc">
+            <span class="nord-sort-check" id="check-order-desc">✔</span>
+            <span>Descending</span>
+          </div>
+          <div class="nord-menu-divider"></div>
+          <div class="nord-sort-section-title">SORT BY</div>
+          <div class="nord-sort-option" data-sort="title">
+            <span class="nord-sort-check" id="check-sort-title" style="visibility: hidden;">✔</span>
+            <span>Title</span>
+          </div>
+          <div class="nord-sort-option" data-sort="last_used">
+            <span class="nord-sort-check" id="check-sort-last">✔</span>
+            <span>Last Used</span>
+          </div>
+        </div>
       </div>
 
-      <!-- Lista de Elementos con Favicons -->
+      <!-- Lista de Elementos con Favicons Reales -->
       <div class="nord-items-list" id="items-list">
-        <!-- Renderizado dinámico -->
+        <!-- Render dinámico -->
       </div>
 
-      <!-- Barra Inferior NordPass (Image 1) -->
+      <!-- Barra Inferior NordPass (Image 1 y 3) -->
       <footer class="nord-bottom-bar">
         <div class="nord-bottom-left">
-          <button class="nord-bottom-icon" id="btn-settings" title="Ajustes / Bloquear">
+          <button class="nord-bottom-icon" id="btn-settings-open" title="Ajustes de Bóveda">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="3"></circle>
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
@@ -172,6 +182,34 @@
           Full screen
         </button>
       </footer>
+    </div>
+
+    <!-- Submenú de Cuenta Estilo NordPass (Image 4) -->
+    <div id="view-account" class="nord-account-view" style="display: none;">
+      <header class="nord-account-header">
+        <button id="btn-account-back" class="nord-account-back-btn" title="Volver">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        <div class="nord-account-avatar-large" id="account-avatar-large">Je</div>
+        <div class="nord-account-email" id="account-email-display">usuario@email.com</div>
+        <div class="nord-account-plan">Free plan</div>
+      </header>
+
+      <div class="nord-account-body">
+        <div class="nord-account-action-row" id="btn-account-add-new">
+          <div class="nord-account-action-icon">+</div>
+          <span>Add another account</span>
+        </div>
+
+        <div style="flex: 1;"></div>
+
+        <div class="nord-account-buttons">
+          <button class="nord-btn-lock" id="btn-account-lock">Lock app</button>
+          <button class="nord-btn-logout" id="btn-account-logout">Log Out</button>
+        </div>
+      </div>
     </div>
 
     <!-- Vista de Detalle de Elemento (Image 2) -->
@@ -272,7 +310,7 @@
       </div>
     </div>
 
-    <!-- Modal: Agregar / Editar Elemento -->
+    <!-- Modal: Agregar / Editar Elemento (Con opción de ver la contraseña sugerida) -->
     <div id="modal-add" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #ffffff; z-index: 150; padding: 20px; overflow-y: auto; flex-direction: column; gap: 14px;">
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-light); padding-bottom: 10px;">
         <span style="font-weight: 700; font-size: 16px;">Nuevo Elemento</span>
@@ -293,8 +331,10 @@
         <label>Contraseña</label>
         <div style="display: flex; gap: 6px;">
           <input type="password" id="add-password" style="flex: 1;" placeholder="••••••••">
-          <button id="btn-quick-gen" type="button" style="background: #f1f5f9; border: 1px solid var(--border-light); border-radius: 8px; padding: 0 12px; cursor: pointer;" title="Generar">⚡</button>
+          <button id="btn-toggle-add-pass" type="button" style="background: #f1f5f9; border: 1px solid var(--border-light); border-radius: 8px; padding: 0 10px; cursor: pointer;" title="Ver / Ocultar contraseña sugerida">👁️</button>
+          <button id="btn-quick-gen" type="button" style="background: #f1f5f9; border: 1px solid var(--border-light); border-radius: 8px; padding: 0 12px; cursor: pointer;" title="Generar sugerencia segura">⚡</button>
         </div>
+        <div id="add-strength-feedback" style="font-size: 11px; color: #10b981; margin-top: 2px; display: none;">✔ Contraseña segura sugerida</div>
       </div>
 
       <div class="nord-input-group">

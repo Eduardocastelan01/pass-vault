@@ -11,7 +11,7 @@
   --accent-blue: #0284c7;
   --accent-blue-hover: #0369a1;
   --green-badge: #10b981;
-  --danger-red: #ef4444;
+  --danger-red: #dc2626;
 }
 
 * {
@@ -35,6 +35,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100%;
+  position: relative;
 }
 
 /* ================= HEADER NORDPASS ================= */
@@ -72,34 +73,24 @@ body {
   gap: 12px;
 }
 
-.nord-icon-btn {
-  background: transparent;
-  border: none;
-  color: #94a3b8;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-  transition: color 0.15s ease;
-}
-
-.nord-icon-btn:hover {
-  color: #ffffff;
-}
-
 .nord-avatar {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   background-color: #d97706;
   color: #ffffff;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: capitalize;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.nord-avatar:hover {
+  transform: scale(1.08);
 }
 
 /* Dropdown Flotante de Bóvedas */
@@ -134,6 +125,12 @@ body {
 
 .nord-menu-item:hover {
   background-color: var(--card-hover);
+}
+
+.nord-menu-item.active {
+  background-color: #f1f5f9;
+  font-weight: 600;
+  color: var(--accent-blue);
 }
 
 .nord-menu-divider {
@@ -187,6 +184,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 6px 16px 8px 16px;
+  position: relative;
 }
 
 .nord-sort-btn {
@@ -199,6 +197,57 @@ body {
   background: transparent;
   border: none;
   cursor: pointer;
+}
+
+/* Dropdown de Ordenación Flotante (Image 5) */
+.nord-sort-dropdown {
+  position: absolute;
+  top: 36px;
+  left: 16px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-light);
+  width: 170px;
+  padding: 10px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 90;
+  animation: fadeIn 0.12s ease-out;
+}
+
+.nord-sort-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 4px 10px 2px 10px;
+  letter-spacing: 0.05em;
+}
+
+.nord-sort-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: background-color 0.12s ease;
+}
+
+.nord-sort-option:hover {
+  background-color: var(--card-hover);
+}
+
+.nord-sort-check {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-primary);
+  width: 12px;
 }
 
 /* Lista de Elementos */
@@ -475,29 +524,156 @@ body {
   width: fit-content;
 }
 
-/* Auth view */
+/* ================= SUBMENÚ DE CUENTA NORDPASS (IMAGE 4) ================= */
+.nord-account-view {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--header-bg);
+  display: flex;
+  flex-direction: column;
+  z-index: 70;
+  animation: slideLeft 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nord-account-header {
+  padding: 14px 16px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  align-items: center;
+  gap: 10px;
+}
+
+.nord-account-back-btn {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.nord-account-avatar-large {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background-color: #d97706;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+  margin-top: 8px;
+}
+
+.nord-account-email {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+  word-break: break-all;
+  text-align: center;
+}
+
+.nord-account-plan {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.nord-account-body {
+  flex: 1;
+  background-color: var(--body-bg);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.nord-account-action-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.nord-account-action-row:hover {
+  background-color: var(--card-hover);
+}
+
+.nord-account-action-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px dashed var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: var(--text-secondary);
+}
+
+.nord-account-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.nord-btn-lock {
+  flex: 1;
+  background-color: #ffffff;
+  border: 1px solid var(--border-light);
+  color: var(--text-primary);
+  border-radius: 10px;
+  padding: 12px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.nord-btn-lock:hover {
+  background-color: var(--card-hover);
+}
+
+.nord-btn-logout {
+  flex: 1;
+  background-color: var(--danger-red);
+  border: none;
+  color: #ffffff;
+  border-radius: 10px;
+  padding: 12px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.nord-btn-logout:hover {
+  background-color: #b91c1c;
+}
+
+/* ================= AUTH VIEW ================= */
 .nord-auth-view {
   background-color: var(--body-bg);
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
-  padding: 24px;
+  padding: 28px 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  height: calc(100% - 50px);
+  height: 100%;
   justify-content: center;
-}
-
-.nord-auth-view h1 {
-  font-size: 18px;
-  font-weight: 700;
-  text-align: center;
-}
-
-.nord-auth-view p {
-  font-size: 12px;
-  color: var(--text-secondary);
-  text-align: center;
 }
 
 .nord-input-group {
@@ -512,7 +688,7 @@ body {
   color: var(--text-secondary);
 }
 
-.nord-input-group input {
+.nord-input-group input, .nord-input-group textarea {
   padding: 10px 12px;
   border: 1px solid var(--border-light);
   border-radius: 8px;
@@ -520,7 +696,7 @@ body {
   outline: none;
 }
 
-.nord-input-group input:focus {
+.nord-input-group input:focus, .nord-input-group textarea:focus {
   border-color: var(--accent-blue);
 }
 
