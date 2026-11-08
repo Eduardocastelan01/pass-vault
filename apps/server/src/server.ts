@@ -75,6 +75,9 @@ export function buildServer(dbPath?: string) {
     }
   }
 
+  // Health check
+  fastify.get('/health', async () => ({ status: 'ok', service: 'PassVault' }));
+
   // 1. Prelogin: Entrega el Salt para derivación local Zero-Knowledge
   fastify.post<{ Body: { email: string } }>('/api/v1/auth/prelogin', async (req, reply) => {
     const { email } = req.body || {};
