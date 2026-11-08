@@ -121,6 +121,53 @@ const btnRefreshGen = document.getElementById('fs-btn-refresh-gen')!;
 // Toast
 const toastEl = document.getElementById('fs-toast')!;
 
+// Modal: Confirmación Integrada (Estilo NordPass)
+const modalConfirm = document.getElementById('fs-modal-confirm') as HTMLDivElement;
+const confirmIconBox = document.getElementById('fs-confirm-icon-box') as HTMLDivElement;
+const confirmTitle = document.getElementById('fs-confirm-title') as HTMLElement;
+const confirmMessage = document.getElementById('fs-confirm-message') as HTMLElement;
+const btnConfirmCancel = document.getElementById('fs-btn-confirm-cancel') as HTMLButtonElement;
+const btnConfirmAction = document.getElementById('fs-btn-confirm-action') as HTMLButtonElement;
+const folderModalTitle = document.getElementById('fs-modal-folder-title') as HTMLElement;
+
+let confirmCallback: (() => Promise<void> | void) | null = null;
+let editingFolderId: string | null = null;
+
+function openConfirmModal(opts: {
+  title: string;
+  message: string;
+  actionText: string;
+  isDanger?: boolean;
+  icon?: string;
+  onConfirm: () => Promise<void> | void;
+}) {
+  confirmTitle.textContent = opts.title;
+  confirmMessage.textContent = opts.message;
+  btnConfirmAction.textContent = opts.actionText;
+  btnConfirmAction.style.background = opts.isDanger !== false ? '#dc2626' : 'var(--primary-blue)';
+  confirmIconBox.style.background = opts.isDanger !== false ? '#fee2e2' : '#e0f2fe';
+  confirmIconBox.style.color = opts.isDanger !== false ? '#dc2626' : '#0284c7';
+  confirmIconBox.textContent = opts.icon || (opts.isDanger !== false ? '🗑️' : 'ℹ️');
+  confirmCallback = opts.onConfirm;
+  modalConfirm.style.display = 'flex';
+}
+
+btnConfirmCancel.addEventListener('click', () => {
+  modalConfirm.style.display = 'none';
+  confirmCallback = null;
+});
+
+btnConfirmAction.addEventListener('click', async () => {
+  if (confirmCallback) {
+    const cb = confirmCallback;
+    confirmCallback = null;
+    modalConfirm.style.display = 'none';
+    await cb();
+  } else {
+    modalConfirm.style.display = 'none';
+  }
+});
+
 // Estado
 let items: DecryptedVaultItem[] = [];
 let folders: Folder[] = [];
@@ -492,67 +539,60 @@ navItems.forEach((item) => {
 });
 
 // ================= GESTIÓN Y TRASPASO DE CARPETAS =================
-btnDeleteFolder.addEventListener('click', async () => {
+btnDeleteFolder.addEventListener('click', () => {
   if (!currentFolderId) return;
   const folder = folders.find((f) => f.id === currentFolderId);
   const name = folder ? folder.name : 'esta carpeta';
 
-  const ok = confirm(
-    `¿Estás seguro de que deseas eliminar la carpeta "${name}"?\n\nLas credenciales dentro de ella NO se borrarán: se moverán a tu bóveda general (sin carpeta).`
-  );
-  if (!ok) return;
+  openConfirmModal({
+    title: `Eliminar Carpeta "${name}"`,
+    message: `¿Estás seguro de que deseas eliminar la carpeta "${name}"? Las credenciales dentro de ella NO se borrarán: se moverán a tu bóveda general (sin carpeta).`,
+    actionText: 'Eliminar Carpeta',
+    isDanger: true,
+    icon: '🗑️',
+    onConfirm: async () => {
+      // Desvincular items
+      const affected = items.filter((i) => i.folderId === currentFolderId);
+      for (const item of affected) {
+        item.folderId = null;
+        await chrome.runtime.sendMessage({
+          type: 'SAVE_ITEM',
+          item: {
+            id: item.id,
+            type: item.type,
+            name: item.name,
+            favorite: item.favorite,
+            folderId: null,
+            data: item.data,
+          },
+        });
+      }
 
-  // Desvincular items
-  const affected = items.filter((i) => i.folderId === currentFolderId);
-  for (const item of affected) {
-    item.folderId = null;
-    await chrome.runtime.sendMessage({
-      type: 'SAVE_ITEM',
-      item: {
-        id: item.id,
-        type: item.type,
-        name: item.name,
-        favorite: item.favorite,
-        folderId: null,
-        data: item.data,
-      },
-    });
-  }
+      // Eliminar carpeta
+      folders = folders.filter((f) => f.id !== currentFolderId);
+      await chrome.storage.local.set({ folders });
 
-  // Eliminar carpeta
-  folders = folders.filter((f) => f.id !== currentFolderId);
-  await chrome.storage.local.set({ folders });
+      currentFolderId = null;
+      currentNav = 'vault';
+      viewTitle.textContent = 'Vault';
+      folderActions.style.display = 'none';
 
-  currentFolderId = null;
-  currentNav = 'vault';
-  viewTitle.textContent = 'Vault';
-  folderActions.style.display = 'none';
+      navItems.forEach((i) => i.classList.remove('active'));
+      document.querySelector('.fs-nav-item[data-nav="vault"]')?.classList.add('active');
 
-  navItems.forEach((i) => i.classList.remove('active'));
-  document.querySelector('.fs-nav-item[data-nav="vault"]')?.classList.add('active');
-
-  renderFoldersList();
-  populateFolderSelect();
-  renderTable();
-  showToast(`✓ Carpeta "${name}" eliminada`);
+      renderFoldersList();
+      populateFolderSelect();
+      renderTable();
+      showToast(`✓ Carpeta "${name}" eliminada`);
+    },
+  });
 });
 
-btnRenameFolder.addEventListener('click', async () => {
+btnRenameFolder.addEventListener('click', () => {
   if (!currentFolderId) return;
   const folder = folders.find((f) => f.id === currentFolderId);
   if (!folder) return;
-
-  const newName = prompt('Nuevo nombre para la carpeta:', folder.name);
-  if (!newName || newName.trim() === '' || newName.trim() === folder.name) return;
-
-  folder.name = newName.trim();
-  await chrome.storage.local.set({ folders });
-  viewTitle.textContent = folder.name;
-
-  renderFoldersList();
-  populateFolderSelect();
-  renderTable();
-  showToast(`✓ Carpeta renombrada a "${folder.name}"`);
+  openFolderModal(folder);
 });
 
 // Modal para Mover Credencial a Otra Carpeta
@@ -594,7 +634,7 @@ btnSaveMove.addEventListener('click', async () => {
     showToast(folderObj ? `✓ Movido a "${folderObj.name}"` : '✓ Movido a Bóveda Principal');
     renderTable();
   } catch (err: any) {
-    alert(err.message || 'Error al mover elemento');
+    showToast(err.message || 'Error al mover elemento');
   } finally {
     btnSaveMove.textContent = 'Move Item';
   }
@@ -764,7 +804,7 @@ btnSaveCreate.addEventListener('click', async () => {
   const folderId = itemFolder.value || null;
 
   if (!name) {
-    alert('El título es obligatorio.');
+    showToast('El título es obligatorio.');
     return;
   }
 
@@ -773,7 +813,7 @@ btnSaveCreate.addEventListener('click', async () => {
   if (activeCreateType === 'login') {
     const password = loginPassword.value;
     if (!password) {
-      alert('Ingresa una contraseña.');
+      showToast('Ingresa una contraseña.');
       return;
     }
     const username = loginUsername.value.trim();
@@ -787,7 +827,7 @@ btnSaveCreate.addEventListener('click', async () => {
   } else if (activeCreateType === 'card') {
     const number = cardNumber.value.trim();
     if (!number) {
-      alert('El número de tarjeta es obligatorio.');
+      showToast('El número de tarjeta es obligatorio.');
       return;
     }
     const cardholderName = cardHolder.value.trim();
@@ -847,43 +887,69 @@ btnSaveCreate.addEventListener('click', async () => {
     showToast('✓ Elemento guardado en tu bóveda');
     await loadData();
   } catch (err: any) {
-    alert(err.message || 'Error al guardar');
+    showToast(err.message || 'Error al guardar');
   } finally {
     btnSaveCreate.disabled = false;
     btnSaveCreate.textContent = 'Save to Vault';
   }
 });
 
-// ================= MODAL ADD NEW FOLDER (Image 5) =================
-function openFolderModal() {
-  folderNameInput.value = '';
+// ================= MODAL ADD NEW FOLDER / RENAME (Image 5) =================
+function openFolderModal(folderToRename?: Folder) {
+  if (folderToRename) {
+    editingFolderId = folderToRename.id;
+    if (folderModalTitle) folderModalTitle.textContent = 'Rename Folder';
+    folderNameInput.value = folderToRename.name;
+    btnSaveFolder.textContent = 'Save Changes';
+  } else {
+    editingFolderId = null;
+    if (folderModalTitle) folderModalTitle.textContent = 'Add New Folder';
+    folderNameInput.value = '';
+    btnSaveFolder.textContent = 'Save';
+  }
   modalFolder.style.display = 'flex';
   setTimeout(() => folderNameInput.focus(), 50);
 }
 
 btnCloseFolder.addEventListener('click', () => {
   modalFolder.style.display = 'none';
+  editingFolderId = null;
 });
 
 btnSaveFolder.addEventListener('click', async () => {
   const name = folderNameInput.value.trim();
   if (!name) {
-    alert('Ingresa el nombre de la carpeta.');
+    showToast('Ingresa el nombre de la carpeta.');
     return;
   }
 
-  const newFolder: Folder = {
-    id: crypto.randomUUID(),
-    name,
-  };
+  if (editingFolderId) {
+    const folder = folders.find((f) => f.id === editingFolderId);
+    if (folder) {
+      folder.name = name;
+      await chrome.storage.local.set({ folders });
+      if (currentFolderId === folder.id) {
+        viewTitle.textContent = folder.name;
+      }
+      showToast(`✓ Carpeta renombrada a "${folder.name}"`);
+    }
+    editingFolderId = null;
+  } else {
+    const newFolder: Folder = {
+      id: crypto.randomUUID(),
+      name,
+    };
 
-  folders.push(newFolder);
-  await chrome.storage.local.set({ folders });
+    folders.push(newFolder);
+    await chrome.storage.local.set({ folders });
+    showToast(`✓ Carpeta "${name}" creada`);
+  }
+
   renderFoldersList();
   populateFolderSelect();
+  renderTable();
 
   modalFolder.style.display = 'none';
-  showToast(`✓ Carpeta "${name}" creada`);
 });
 
 // ================= MODAL GENERADOR =================
@@ -971,13 +1037,19 @@ btnLockNow.addEventListener('click', async () => {
   setTimeout(() => window.close(), 800);
 });
 
-btnLogoutNow.addEventListener('click', async () => {
-  const ok = confirm('¿Deseas cerrar sesión en este dispositivo?');
-  if (ok) {
-    await chrome.runtime.sendMessage({ type: 'LOGOUT' });
-    showToast('Sesión cerrada.');
-    setTimeout(() => window.close(), 800);
-  }
+btnLogoutNow.addEventListener('click', () => {
+  openConfirmModal({
+    title: 'Cerrar Sesión',
+    message: '¿Deseas cerrar sesión en este dispositivo? Deberás ingresar tu contraseña maestra nuevamente para acceder.',
+    actionText: 'Cerrar Sesión',
+    isDanger: true,
+    icon: '🔒',
+    onConfirm: async () => {
+      await chrome.runtime.sendMessage({ type: 'LOGOUT' });
+      showToast('Sesión cerrada.');
+      setTimeout(() => window.close(), 800);
+    },
+  });
 });
 
 if (window.location.hash === '#settings') {

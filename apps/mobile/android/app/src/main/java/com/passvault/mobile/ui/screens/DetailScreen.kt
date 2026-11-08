@@ -272,3 +272,4 @@ fun DetailFieldGroup(label: String, value: String, onCopy: (() -> Unit)? = null)
         }
     }
 }
+

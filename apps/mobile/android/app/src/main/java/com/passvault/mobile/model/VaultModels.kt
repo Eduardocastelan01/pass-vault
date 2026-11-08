@@ -91,3 +91,4 @@ data class SyncResponse(
     val items: List<EncryptedVaultItem> = emptyList(),
     val serverTime: String = ""
 )
+

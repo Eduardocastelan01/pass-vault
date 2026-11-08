@@ -9,3 +9,11 @@ build
 *.sqlite-journal
 data/
 
+# Android & Gradle
+.gradle/
+**/build/
+*.apk
+*.aab
+.idea/
+*.iml
+

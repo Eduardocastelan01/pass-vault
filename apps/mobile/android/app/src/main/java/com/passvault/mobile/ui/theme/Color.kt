@@ -15,3 +15,4 @@ val NordAmber = Color(0xFFF59E0B)
 val NordRed = Color(0xFFDC2626)
 val NordSurface = Color(0xFFFFFFFF)
 val NordBackground = Color(0xFF0C0F15)
+

@@ -129,6 +129,51 @@ const btnSavePopupFolder = document.getElementById('btn-save-popup-folder')!;
 
 const toastEl = document.getElementById('toast')!;
 
+// Modal Confirmación Integrada en Popup
+const popupModalConfirm = document.getElementById('popup-modal-confirm') as HTMLDivElement;
+const popupConfirmIconBox = document.getElementById('popup-confirm-icon-box') as HTMLDivElement;
+const popupConfirmTitle = document.getElementById('popup-confirm-title') as HTMLElement;
+const popupConfirmMessage = document.getElementById('popup-confirm-message') as HTMLElement;
+const btnPopupConfirmCancel = document.getElementById('btn-popup-confirm-cancel') as HTMLButtonElement;
+const btnPopupConfirmAction = document.getElementById('btn-popup-confirm-action') as HTMLButtonElement;
+
+let popupConfirmCallback: (() => Promise<void> | void) | null = null;
+
+function openPopupConfirmModal(opts: {
+  title: string;
+  message: string;
+  actionText: string;
+  isDanger?: boolean;
+  icon?: string;
+  onConfirm: () => Promise<void> | void;
+}) {
+  popupConfirmTitle.textContent = opts.title;
+  popupConfirmMessage.textContent = opts.message;
+  btnPopupConfirmAction.textContent = opts.actionText;
+  btnPopupConfirmAction.style.background = opts.isDanger !== false ? '#dc2626' : 'var(--nord-blue)';
+  popupConfirmIconBox.style.background = opts.isDanger !== false ? '#fee2e2' : '#e0f2fe';
+  popupConfirmIconBox.style.color = opts.isDanger !== false ? '#dc2626' : '#0284c7';
+  popupConfirmIconBox.textContent = opts.icon || (opts.isDanger !== false ? '🗑️' : 'ℹ️');
+  popupConfirmCallback = opts.onConfirm;
+  popupModalConfirm.style.display = 'flex';
+}
+
+btnPopupConfirmCancel.addEventListener('click', () => {
+  popupModalConfirm.style.display = 'none';
+  popupConfirmCallback = null;
+});
+
+btnPopupConfirmAction.addEventListener('click', async () => {
+  if (popupConfirmCallback) {
+    const cb = popupConfirmCallback;
+    popupConfirmCallback = null;
+    popupModalConfirm.style.display = 'none';
+    await cb();
+  } else {
+    popupModalConfirm.style.display = 'none';
+  }
+});
+
 // Estado
 let currentItems: DecryptedVaultItem[] = [];
 let popupFolders: Folder[] = [];
@@ -300,14 +345,20 @@ btnAccountLock.addEventListener('click', async () => {
   showToast('Bóveda bloqueada');
 });
 
-btnAccountLogout.addEventListener('click', async () => {
-  const ok = confirm('¿Deseas cerrar sesión en esta extensión?');
-  if (ok) {
-    await chrome.runtime.sendMessage({ type: 'LOGOUT' });
-    showAuthView();
-    authPassword.value = '';
-    showToast('Sesión cerrada');
-  }
+btnAccountLogout.addEventListener('click', () => {
+  openPopupConfirmModal({
+    title: 'Cerrar Sesión',
+    message: '¿Deseas cerrar sesión en esta extensión? Deberás ingresar tu contraseña maestra para volver a entrar.',
+    actionText: 'Cerrar Sesión',
+    isDanger: true,
+    icon: '🔒',
+    onConfirm: async () => {
+      await chrome.runtime.sendMessage({ type: 'LOGOUT' });
+      showAuthView();
+      authPassword.value = '';
+      showToast('Sesión cerrada');
+    },
+  });
 });
 
 btnAccountAddNew.addEventListener('click', () => {
@@ -394,36 +445,39 @@ btnToggleAuthMode.addEventListener('click', () => {
 btnForgotCreds.addEventListener('click', async () => {
   const email = authEmail.value.trim();
   if (!email) {
-    alert('Por favor ingresa tu correo electrónico primero.');
+    showToast('Ingresa tu correo electrónico primero.');
     return;
   }
 
-  const confirmReset = confirm(
-    `¿Deseas restablecer tu cuenta para ${email}?\n\nEsto te permitirá registrar una nueva contraseña maestra que recuerdes.`
-  );
+  openPopupConfirmModal({
+    title: 'Restablecer Cuenta',
+    message: `¿Deseas restablecer tu cuenta para ${email}? Esto te permitirá registrar una nueva contraseña maestra que recuerdes.`,
+    actionText: 'Restablecer Cuenta',
+    isDanger: true,
+    icon: '⚠️',
+    onConfirm: async () => {
+      btnForgotCreds.textContent = 'Restableciendo...';
+      try {
+        await chrome.runtime.sendMessage({
+          type: 'RESET_ACCOUNT',
+          email,
+          serverUrl: authServer.value.trim(),
+        });
 
-  if (!confirmReset) return;
-
-  btnForgotCreds.textContent = 'Restableciendo...';
-  try {
-    await chrome.runtime.sendMessage({
-      type: 'RESET_ACCOUNT',
-      email,
-      serverUrl: authServer.value.trim(),
-    });
-
-    isRegisterMode = true;
-    authTitle.textContent = 'Crear Nueva Cuenta';
-    btnAuthSubmit.textContent = 'Crear Bóveda Segura';
-    btnToggleAuthMode.textContent = 'Ya tengo cuenta (Iniciar sesión)';
-    authPassword.value = '';
-    authError.style.display = 'none';
-    showToast('✓ Cuenta restablecida. Crea tu nueva contraseña.');
-  } catch (err: any) {
-    alert(err.message || 'Error al restablecer');
-  } finally {
-    btnForgotCreds.textContent = '¿Olvidaste tu contraseña maestra? Restablecer cuenta';
-  }
+        isRegisterMode = true;
+        authTitle.textContent = 'Crear Nueva Cuenta';
+        btnAuthSubmit.textContent = 'Crear Bóveda Segura';
+        btnToggleAuthMode.textContent = 'Ya tengo cuenta (Iniciar sesión)';
+        authPassword.value = '';
+        authError.style.display = 'none';
+        showToast('✓ Cuenta restablecida. Crea tu nueva contraseña.');
+      } catch (err: any) {
+        showToast(err.message || 'Error al restablecer');
+      } finally {
+        btnForgotCreds.textContent = '¿Olvidaste tu contraseña maestra? Restablecer cuenta';
+      }
+    },
+  });
 });
 
 btnAuthSubmit.addEventListener('click', async () => {
@@ -534,33 +588,39 @@ function renderItems() {
           </div>
         `;
 
-        row.querySelector(`[data-delete-f="${f.id}"]`)?.addEventListener('click', async (e) => {
+        row.querySelector(`[data-delete-f="${f.id}"]`)?.addEventListener('click', (e) => {
           e.stopPropagation();
-          const ok = confirm(`¿Deseas eliminar la carpeta "${f.name}"?\n\nLas credenciales dentro de ella se mantendrán en tu bóveda general.`);
-          if (!ok) return;
+          openPopupConfirmModal({
+            title: `Eliminar Carpeta "${f.name}"`,
+            message: `¿Deseas eliminar la carpeta "${f.name}"? Las credenciales dentro de ella se mantendrán en tu bóveda general.`,
+            actionText: 'Eliminar Carpeta',
+            isDanger: true,
+            icon: '🗑️',
+            onConfirm: async () => {
+              // Desvincular items
+              const affected = currentItems.filter((i) => i.folderId === f.id);
+              for (const item of affected) {
+                item.folderId = null;
+                await chrome.runtime.sendMessage({
+                  type: 'SAVE_ITEM',
+                  item: {
+                    id: item.id,
+                    type: item.type,
+                    name: item.name,
+                    favorite: item.favorite,
+                    folderId: null,
+                    data: item.data,
+                  },
+                });
+              }
 
-          // Desvincular items
-          const affected = currentItems.filter((i) => i.folderId === f.id);
-          for (const item of affected) {
-            item.folderId = null;
-            await chrome.runtime.sendMessage({
-              type: 'SAVE_ITEM',
-              item: {
-                id: item.id,
-                type: item.type,
-                name: item.name,
-                favorite: item.favorite,
-                folderId: null,
-                data: item.data,
-              },
-            });
-          }
-
-          popupFolders = popupFolders.filter((item) => item.id !== f.id);
-          await chrome.storage.local.set({ folders: popupFolders });
-          populatePopupFolderSelect();
-          renderItems();
-          showToast(`✓ Carpeta "${f.name}" eliminada`);
+              popupFolders = popupFolders.filter((item) => item.id !== f.id);
+              await chrome.storage.local.set({ folders: popupFolders });
+              populatePopupFolderSelect();
+              renderItems();
+              showToast(`✓ Carpeta "${f.name}" eliminada`);
+            },
+          });
         });
 
         itemsList.appendChild(row);
@@ -952,7 +1012,7 @@ btnSaveNew.addEventListener('click', async () => {
   const notes = addNotes.value.trim();
 
   if (!name) {
-    alert('Ingresa el título o nombre del elemento');
+    showToast('Ingresa el título o nombre del elemento');
     return;
   }
 
@@ -961,7 +1021,7 @@ btnSaveNew.addEventListener('click', async () => {
   if (activePopupAddType === 'login') {
     const password = addPassword.value;
     if (!password) {
-      alert('Ingresa la contraseña');
+      showToast('Ingresa la contraseña');
       return;
     }
     const username = addUsername.value.trim();
@@ -975,7 +1035,7 @@ btnSaveNew.addEventListener('click', async () => {
   } else if (activePopupAddType === 'card') {
     const number = addCardNumber.value.trim();
     if (!number) {
-      alert('Ingresa el número de tarjeta');
+      showToast('Ingresa el número de tarjeta');
       return;
     }
     const cardholderName = addCardHolder.value.trim();
@@ -1036,7 +1096,7 @@ btnSaveNew.addEventListener('click', async () => {
     await loadItems();
     showToast('✓ Elemento guardado en tu bóveda');
   } catch (err: any) {
-    alert(err.message || 'Error al guardar');
+    showToast(err.message || 'Error al guardar');
   } finally {
     btnSaveNew.disabled = false;
     btnSaveNew.textContent = 'Guardar en Bóveda';
@@ -1057,7 +1117,7 @@ btnClosePopupFolder.addEventListener('click', () => {
 btnSavePopupFolder.addEventListener('click', async () => {
   const name = popupFolderNameInput.value.trim();
   if (!name) {
-    alert('Ingresa el nombre de la carpeta');
+    showToast('Ingresa el nombre de la carpeta');
     return;
   }
 
