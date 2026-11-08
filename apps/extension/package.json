@@ -1,0 +1,19 @@
+{
+  "name": "@pass-vault/extension",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch"
+  },
+  "dependencies": {
+    "@pass-vault/core": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "vite": "^6.1.0",
+    "@types/chrome": "^0.0.300"
+  }
+}
+

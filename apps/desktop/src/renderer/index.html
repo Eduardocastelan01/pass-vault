@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>PassVault Desktop</title>
+  <link rel="stylesheet" href="./app.css">
+</head>
+<body>
+  <!-- Vista de Login / Desbloqueo -->
+  <div id="desktop-auth">
+    <div class="auth-box">
+      <h1>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </svg>
+        PassVault
+      </h1>
+      <p style="color: var(--text-sub); font-size: 13px;">Bóveda Segura de Escritorio (Zero-Knowledge)</p>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <label class="field-label">Servidor Sync</label>
+        <input type="text" id="auth-server" value="http://localhost:3000">
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <label class="field-label">Correo Electrónico</label>
+        <input type="email" id="auth-email" placeholder="tu@email.com">
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <label class="field-label">Contraseña Maestra</label>
+        <input type="password" id="auth-password" placeholder="••••••••••••••••">
+      </div>
+
+      <div id="auth-msg" style="color: var(--danger); font-size: 12px; display: none;"></div>
+
+      <button class="btn-primary" id="btn-login" style="padding: 12px;">Desbloquear Bóveda</button>
+    </div>
+  </div>
+
+  <!-- Vista Principal de 3 Columnas -->
+  <div id="desktop-main" style="display: none;">
+    <!-- Columna 1: Sidebar de Navegación -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </svg>
+        PassVault
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-item active" data-filter="all">📂 Todos los elementos</div>
+        <div class="nav-item" data-filter="login">🔑 Inicios de sesión</div>
+        <div class="nav-item" data-filter="card">💳 Tarjetas bancarias</div>
+        <div class="nav-item" data-filter="note">📝 Notas seguras</div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="btn-secondary" id="btn-sync-desk">🔄 Sincronizar</button>
+        <button class="btn-secondary" id="btn-lock-desk">🔒 Bloquear</button>
+      </div>
+    </aside>
+
+    <!-- Columna 2: Lista de Elementos -->
+    <section class="items-column">
+      <div class="search-bar">
+        <input type="text" id="search-input" placeholder="Buscar en la bóveda...">
+        <button class="btn-primary" id="btn-new-item" title="Nuevo">+</button>
+      </div>
+      <div class="item-list-container" id="item-list-container">
+        <!-- Render dinámico -->
+      </div>
+    </section>
+
+    <!-- Columna 3: Detalles y Edición -->
+    <main class="details-column" id="details-column">
+      <div style="text-align: center; color: var(--text-sub); margin-top: 100px;">
+        Selecciona un elemento para ver o editar sus detalles cifrados.
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
+

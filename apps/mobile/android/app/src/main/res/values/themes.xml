@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.PassVault" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">#0b0f17</item>
+        <item name="android:navigationBarColor">#0b0f17</item>
+        <item name="android:windowBackground">#0b0f17</item>
+    </style>
+</resources>

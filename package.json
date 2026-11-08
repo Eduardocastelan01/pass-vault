@@ -1,0 +1,25 @@
+{
+  "name": "pass-vault",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Zero-Knowledge Multiplatform Password, Card, and Note Vault",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run --workspaces --if-present build",
+    "test": "npm run --workspaces --if-present test",
+    "dev:server": "npm run --workspace=@pass-vault/server dev",
+    "dev:extension": "npm run --workspace=@pass-vault/extension dev"
+  },
+  "keywords": [
+    "password-manager",
+    "zero-knowledge",
+    "vault",
+    "encryption"
+  ],
+  "author": "",
+  "license": "MIT"
+}
+

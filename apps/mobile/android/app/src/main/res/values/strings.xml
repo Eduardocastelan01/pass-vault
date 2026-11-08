@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">PassVault</string>
+    <string name="autofill_service_label">PassVault Autofill</string>
+    <string name="biometric_prompt_title">Desbloquear PassVault</string>
+    <string name="biometric_prompt_sub">Coloca tu huella en la pantalla para acceder a tus contraseñas</string>
+</resources>
