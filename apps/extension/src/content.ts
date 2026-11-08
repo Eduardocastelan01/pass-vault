@@ -1,4 +1,4 @@
-// Content script para autollenado e intercepción inteligente de credenciales
+// Content Script para autollenado e intercepción inteligente de credenciales estilo NordPass
 
 interface MatchingLogin {
   id: string;
@@ -11,6 +11,9 @@ interface MatchingLogin {
 }
 
 let activeDropdown: HTMLElement | null = null;
+let lastTypedUsername = '';
+let lastTypedPassword = '';
+let lastInterceptionTime = 0;
 
 function removeDropdown() {
   if (activeDropdown) {
@@ -26,7 +29,7 @@ document.addEventListener('click', (e) => {
 });
 
 /**
- * Dispara eventos input y change de forma compatible con React, Vue y Angular
+ * Dispara eventos input y change de forma compatible con React, Vue, Angular y Web Components
  */
 function setNativeValue(element: HTMLInputElement, value: string) {
   const valueSetter = Object.getOwnPropertyDescriptor(element, 'value')?.set;
@@ -52,18 +55,18 @@ function findUsernameField(passwordInput: HTMLInputElement): HTMLInputElement | 
       form.querySelectorAll('input:not([type="hidden"]):not([type="password"]):not([type="submit"])')
     ) as HTMLInputElement[];
     const usernameInput = inputs.find((i) =>
-      /user|email|login|account|usuario|correo/i.test(i.name || i.id || i.type || i.placeholder)
+      /user|email|login|account|usuario|correo|phone|tel/i.test(i.name || i.id || i.type || i.placeholder || i.autocomplete)
     );
     if (usernameInput) return usernameInput;
     if (inputs.length > 0) return inputs[inputs.length - 1];
   }
 
-  // Si no hay form tag envolvente, buscar el input anterior más cercano
+  // Si no hay form tag envolvente, buscar el input visible anterior más cercano
   const allInputs = Array.from(document.querySelectorAll('input')) as HTMLInputElement[];
   const idx = allInputs.indexOf(passwordInput);
   for (let i = idx - 1; i >= 0; i--) {
     const inp = allInputs[i];
-    if (inp.type !== 'hidden' && inp.type !== 'password' && inp.type !== 'submit') {
+    if (inp.type !== 'hidden' && inp.type !== 'password' && inp.type !== 'submit' && inp.type !== 'checkbox') {
       return inp;
     }
   }
@@ -75,7 +78,6 @@ function attachAutofillToInput(passwordInput: HTMLInputElement, logins: Matching
   if (passwordInput.dataset.passvaultAttached) return;
   passwordInput.dataset.passvaultAttached = 'true';
 
-  const rect = passwordInput.getBoundingClientRect();
   const badge = document.createElement('div');
   badge.className = 'passvault-icon-badge';
   badge.title = 'PassVault - Autollenar credenciales';
@@ -85,11 +87,11 @@ function attachAutofillToInput(passwordInput: HTMLInputElement, logins: Matching
     </svg>
   `;
 
-  // Posicionar el badge flotante dentro del input
   function positionBadge() {
     const currentRect = passwordInput.getBoundingClientRect();
-    badge.style.top = `${window.scrollY + currentRect.top + (currentRect.height - 22) / 2}px`;
-    badge.style.left = `${window.scrollX + currentRect.right - 28}px`;
+    if (currentRect.width === 0 || currentRect.height === 0) return;
+    badge.style.top = `${window.scrollY + currentRect.top + (currentRect.height - 24) / 2}px`;
+    badge.style.left = `${window.scrollX + currentRect.right - 30}px`;
   }
 
   positionBadge();
@@ -142,7 +144,7 @@ function attachAutofillToInput(passwordInput: HTMLInputElement, logins: Matching
   });
 }
 
-// Inicializar escaneo de campos
+// Escanear inputs de contraseña para mostrar el ícono de autollenado
 async function scanForPasswordFields() {
   try {
     const res = await chrome.runtime.sendMessage({
@@ -156,55 +158,136 @@ async function scanForPasswordFields() {
     passwordInputs.forEach((input) => {
       attachAutofillToInput(input as HTMLInputElement, res.items);
     });
-  } catch {
-    // Si la extensión está cerrada o bloqueada, silenciar
+  } catch {}
+}
+
+// Rastrear en tiempo real lo que el usuario escribe para autoguardado inteligente
+document.addEventListener('input', (e) => {
+  const target = e.target as HTMLInputElement;
+  if (!target) return;
+
+  if (target.type === 'password' && target.value.length > 0) {
+    lastTypedPassword = target.value;
+    const uField = findUsernameField(target);
+    if (uField && uField.value) {
+      lastTypedUsername = uField.value.trim();
+    }
+  } else if (
+    /user|email|login|account|usuario|correo/i.test(target.name || target.id || target.type || target.placeholder)
+  ) {
+    if (target.value) {
+      lastTypedUsername = target.value.trim();
+    }
+  }
+});
+
+// Detectar envío de credenciales mediante múltiples disparadores
+function attemptSaveDetection() {
+  const now = Date.now();
+  if (now - lastInterceptionTime < 2500) return; // Evitar disparos duplicados
+  lastInterceptionTime = now;
+
+  // Si no tenemos en memoria, buscar en los inputs de la página
+  if (!lastTypedPassword) {
+    const passInput = document.querySelector('input[type="password"]') as HTMLInputElement;
+    if (passInput && passInput.value) {
+      lastTypedPassword = passInput.value;
+      const uInput = findUsernameField(passInput);
+      if (uInput && uInput.value) {
+        lastTypedUsername = uInput.value.trim();
+      }
+    }
+  }
+
+  if (lastTypedPassword && lastTypedPassword.length >= 3) {
+    const username = lastTypedUsername || 'Cuenta sin usuario';
+    showSaveBanner(username, lastTypedPassword);
   }
 }
 
-// Escuchar envío de formularios para sugerir guardar contraseñas
-document.addEventListener('submit', (e) => {
-  const form = e.target as HTMLFormElement;
-  if (!form) return;
+// Disparador 1: Envío tradicional de formulario
+document.addEventListener('submit', () => {
+  attemptSaveDetection();
+});
 
-  const passwordInput = form.querySelector('input[type="password"]') as HTMLInputElement;
-  if (!passwordInput || !passwordInput.value) return;
+// Disparador 2: Clic en botones de login / acceder / sign in
+document.addEventListener('click', (e) => {
+  const target = (e.target as HTMLElement)?.closest('button, input[type="submit"], [role="button"], a');
+  if (!target) return;
 
-  const usernameInput = findUsernameField(passwordInput);
-  const username = usernameInput ? usernameInput.value : '';
-  const password = passwordInput.value;
+  const text = (target.textContent || (target as HTMLInputElement).value || '').toLowerCase();
+  if (/iniciar|sesi[oó]n|login|sign in|acceder|ingresar|entrar|submit|continuar|continue/i.test(text)) {
+    setTimeout(attemptSaveDetection, 300);
+  }
+});
 
-  if (username && password) {
-    showSaveBanner(username, password);
+// Disparador 3: Tecla Enter en el campo de contraseña
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const target = e.target as HTMLInputElement;
+    if (target && target.type === 'password') {
+      setTimeout(attemptSaveDetection, 300);
+    }
   }
 });
 
 function showSaveBanner(username: string, password: string) {
   if (document.querySelector('.passvault-save-banner')) return;
 
-  const domain = window.location.hostname;
+  const domain = window.location.hostname.replace(/^www\./, '');
   const banner = document.createElement('div');
   banner.className = 'passvault-save-banner';
   banner.innerHTML = `
-    <div><strong>¿Guardar credenciales en PassVault?</strong></div>
-    <div style="font-size: 12px; color: #94a3b8;">
-      Sitio: <strong>${domain}</strong><br>
-      Usuario: <strong>${username}</strong>
+    <div class="passvault-banner-header">
+      <div class="passvault-banner-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </svg>
+        ¿Guardar en PassVault?
+      </div>
+      <button class="passvault-banner-close" id="pv-close" title="Cerrar">✕</button>
+    </div>
+    <div class="passvault-banner-body">
+      <div class="passvault-field-row">
+        <span>Sitio web:</span>
+        <strong>${domain}</strong>
+      </div>
+      <div class="passvault-field-row">
+        <span>Usuario:</span>
+        <strong>${username}</strong>
+      </div>
+      <div class="passvault-field-row">
+        <span>Contraseña:</span>
+        <strong>••••••••</strong>
+      </div>
     </div>
     <div class="passvault-banner-actions">
       <button class="passvault-btn-secondary" id="pv-cancel">Ahora no</button>
-      <button class="passvault-btn-primary" id="pv-save">Guardar</button>
+      <button class="passvault-btn-primary" id="pv-save">Guardar Contraseña</button>
     </div>
   `;
 
   document.body.appendChild(banner);
 
-  banner.querySelector('#pv-cancel')?.addEventListener('click', () => {
-    banner.remove();
-  });
+  const removeBanner = () => {
+    banner.style.opacity = '0';
+    banner.style.transform = 'translateY(-20px)';
+    banner.style.transition = 'all 0.2s ease-in';
+    setTimeout(() => banner.remove(), 200);
+  };
+
+  banner.querySelector('#pv-close')?.addEventListener('click', removeBanner);
+  banner.querySelector('#pv-cancel')?.addEventListener('click', removeBanner);
 
   banner.querySelector('#pv-save')?.addEventListener('click', async () => {
+    const saveBtn = banner.querySelector('#pv-save') as HTMLButtonElement;
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Guardando...';
+    }
+
     try {
-      await chrome.runtime.sendMessage({
+      const res = await chrome.runtime.sendMessage({
         type: 'SAVE_ITEM',
         item: {
           type: 'login',
@@ -216,19 +299,34 @@ function showSaveBanner(username: string, password: string) {
           },
         },
       });
-      banner.innerHTML = `<div style="color: #4ade80;">✓ Guardado con éxito en tu bóveda</div>`;
-      setTimeout(() => banner.remove(), 2000);
+
+      if (res && res.error) {
+        throw new Error(res.error);
+      }
+
+      banner.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 8px; color: #4ade80; font-weight: 600; padding: 10px 0;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          ¡Contraseña guardada en tu bóveda!
+        </div>
+      `;
+      setTimeout(removeBanner, 2200);
     } catch {
-      banner.innerHTML = `<div style="color: #ef4444;">Error: Desbloquea la bóveda en la extensión primero</div>`;
-      setTimeout(() => banner.remove(), 3000);
+      banner.innerHTML = `
+        <div style="color: #ef4444; font-size: 12px; padding: 8px 0;">
+          ⚠️ Desbloquea la extensión de PassVault primero para guardar.
+        </div>
+      `;
+      setTimeout(removeBanner, 3000);
     }
   });
 }
 
-// Ejecutar escaneo al cargar y en mutaciones de DOM (para páginas SPA como React/Vue)
+// Iniciar escaneo al cargar y en cambios de la página
 scanForPasswordFields();
 const observer = new MutationObserver(() => {
   scanForPasswordFields();
 });
 observer.observe(document.body, { childList: true, subtree: true });
-

@@ -7,210 +7,300 @@
 </head>
 <body>
   <div id="app">
-    <!-- Header General -->
-    <header>
-      <div class="brand">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+    <!-- Header estilo NordPass (Image 1) -->
+    <header class="nord-header">
+      <div class="nord-vault-selector" id="btn-vault-menu">
+        <span id="selected-vault-label">Vault</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="7 15 12 20 17 15"></polyline>
+          <polyline points="7 9 12 4 17 9"></polyline>
         </svg>
-        <span>PassVault</span>
       </div>
-      <div class="header-actions" id="header-actions" style="display: none;">
-        <button class="icon-btn" id="btn-sync" title="Sincronizar ahora">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="23 4 23 10 17 10"></polyline>
-            <polyline points="1 20 1 14 7 14"></polyline>
-            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-          </svg>
-        </button>
-        <button class="icon-btn" id="btn-lock" title="Bloquear bóveda">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+
+      <!-- Menú desplegable flotante de bóvedas (Image 1) -->
+      <div class="nord-vault-menu" id="vault-dropdown" style="display: none;">
+        <div class="nord-menu-item" data-category="all">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
+          Vault
+        </div>
+        <div class="nord-menu-item" data-category="shared">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          Shared Items
+        </div>
+        <div class="nord-menu-item" data-category="trash">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+          Trash
+        </div>
+        <div class="nord-menu-divider"></div>
+        <div class="nord-menu-item" data-category="folders">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          </svg>
+          Folders
+        </div>
+      </div>
+
+      <div class="nord-header-right">
+        <!-- Ícono campana -->
+        <button class="nord-icon-btn" title="Notificaciones">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
         </button>
+        <!-- Ícono escudo salud -->
+        <button class="nord-icon-btn" id="btn-health" title="Salud de contraseñas">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+        </button>
+        <!-- Avatar de perfil con iniciales estilo NordPass (ej. "Je") -->
+        <div class="nord-avatar" id="user-avatar" title="Mi Cuenta">Je</div>
       </div>
     </header>
 
-    <!-- Vista 1: Login / Desbloqueo -->
-    <div id="view-auth" class="auth-container">
-      <div class="auth-header">
-        <h1 id="auth-title">Desbloquear Bóveda</h1>
-        <p>Tus contraseñas protegidas con cifrado Zero-Knowledge</p>
-      </div>
+    <!-- Vista de Autenticación (si la bóveda está bloqueada al reiniciar laptop) -->
+    <div id="view-auth" class="nord-auth-view" style="display: none;">
+      <h1 id="auth-title">Desbloquear Bóveda</h1>
+      <p id="auth-sub">Tus credenciales protegidas con cifrado Zero-Knowledge</p>
 
-      <div class="form-group">
+      <div class="nord-input-group">
         <label>Servidor de Sincronización</label>
         <input type="text" id="auth-server" value="http://localhost:3000">
       </div>
 
-      <div class="form-group">
+      <div class="nord-input-group">
         <label>Correo Electrónico</label>
-        <input type="email" id="auth-email" placeholder="tu@email.com">
+        <input type="email" id="auth-email" placeholder="tu@correo.com">
       </div>
 
-      <div class="form-group">
+      <div class="nord-input-group">
         <label>Contraseña Maestra</label>
         <input type="password" id="auth-password" placeholder="••••••••••••••••">
       </div>
 
-      <div id="auth-error" style="color: var(--danger); font-size: 11px; display: none;"></div>
+      <div id="auth-error" style="color: var(--danger-red); font-size: 11px; display: none;"></div>
 
-      <button class="btn-primary" id="btn-auth-submit">Desbloquear</button>
-      <button class="btn-secondary" id="btn-toggle-auth-mode">Crear nueva cuenta</button>
+      <button class="nord-btn-main" id="btn-auth-submit">Desbloquear</button>
+      <button style="background: transparent; border: none; color: var(--accent-blue); cursor: pointer; font-size: 12px; margin-top: 4px;" id="btn-toggle-auth-mode">
+        Crear nueva cuenta
+      </button>
     </div>
 
-    <!-- Vista 2: Bóveda Principal -->
-    <div id="view-vault" class="vault-container" style="display: none;">
-      <div class="search-box">
-        <input type="text" id="vault-search" placeholder="Buscar contraseñas, notas, tarjetas...">
+    <!-- Vista Principal de Bóveda (Image 1) -->
+    <div id="view-vault" class="nord-body-card">
+      <!-- Barra de Búsqueda -->
+      <div class="nord-search-container">
+        <div class="nord-search-box">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="vault-search" placeholder="Buscar en la bóveda...">
+        </div>
       </div>
 
-      <div class="tabs">
-        <div class="tab active" data-tab="all">Todos</div>
-        <div class="tab" data-tab="login">Logins</div>
-        <div class="tab" data-tab="card">Tarjetas</div>
-        <div class="tab" data-tab="note">Notas</div>
+      <!-- Barra de Ordenación -->
+      <div class="nord-filter-bar">
+        <button class="nord-sort-btn" id="btn-sort">
+          <span id="sort-label">Sort By Last Used</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="7 15 12 20 17 15"></polyline>
+            <polyline points="7 9 12 4 17 9"></polyline>
+          </svg>
+        </button>
+        <span id="items-counter" style="font-size: 11px; color: var(--text-muted);">0 items</span>
       </div>
 
-      <div class="items-list" id="items-list">
-        <!-- Renderizado dinámico de tarjetas -->
+      <!-- Lista de Elementos con Favicons -->
+      <div class="nord-items-list" id="items-list">
+        <!-- Renderizado dinámico -->
       </div>
 
-      <div class="bottom-bar">
-        <button class="btn-primary" id="btn-open-add" style="flex: 2;">+ Agregar</button>
-        <button class="btn-secondary" id="btn-open-generator" style="flex: 1;">Generador</button>
+      <!-- Barra Inferior NordPass (Image 1) -->
+      <footer class="nord-bottom-bar">
+        <div class="nord-bottom-left">
+          <button class="nord-bottom-icon" id="btn-settings" title="Ajustes / Bloquear">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
+          <button class="nord-bottom-icon" id="btn-sync" title="Sincronizar ahora">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+          </button>
+          <button class="nord-bottom-icon" id="btn-add-item" title="Agregar elemento">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="12" y1="8" x2="12" y2="16"></line>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+        <button class="nord-btn-fullscreen" id="btn-fullscreen">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+          </svg>
+          Full screen
+        </button>
+      </footer>
+    </div>
+
+    <!-- Vista de Detalle de Elemento (Image 2) -->
+    <div id="view-detail" class="nord-detail-view" style="display: none;">
+      <header class="nord-detail-header">
+        <button id="btn-detail-back">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        <button id="btn-detail-edit">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
+          Edit
+        </button>
+      </header>
+
+      <div class="nord-detail-body">
+        <div class="nord-detail-hero">
+          <img id="detail-favicon" class="nord-detail-logo" src="" alt="logo">
+          <div class="nord-detail-title" id="detail-title">Google.com</div>
+        </div>
+
+        <!-- Botones de Acción (Image 2) -->
+        <div class="nord-action-row">
+          <button class="nord-action-pill" id="btn-action-share">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+              <polyline points="16 6 12 2 8 6"></polyline>
+              <line x1="12" y1="2" x2="12" y2="15"></line>
+            </svg>
+            Share
+          </button>
+          <button class="nord-action-pill" id="btn-action-attach">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+            </svg>
+            Attach File
+          </button>
+          <button class="nord-action-pill" id="btn-action-more">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="1"></circle>
+              <circle cx="19" cy="12" r="1"></circle>
+              <circle cx="5" cy="12" r="1"></circle>
+            </svg>
+            More
+          </button>
+        </div>
+
+        <!-- Campos de Datos (Image 2) -->
+        <div class="nord-field-group">
+          <div class="nord-field-label">Email or Username</div>
+          <div class="nord-field-value">
+            <span id="detail-username" style="word-break: break-all;">user@email.com</span>
+            <button class="nord-btn-icon-sm" id="btn-copy-username" title="Copiar usuario">📋</button>
+          </div>
+        </div>
+
+        <div class="nord-field-group">
+          <div class="nord-field-label">Password</div>
+          <div class="nord-field-value">
+            <span id="detail-password" style="font-family: monospace; letter-spacing: 2px;">••••••••••••</span>
+            <div style="display: flex; gap: 4px;">
+              <button class="nord-btn-icon-sm" id="btn-toggle-detail-pass" title="Ver contraseña">👁️</button>
+              <button class="nord-btn-icon-sm" id="btn-copy-password" title="Copiar contraseña">📋</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Password Health (Image 2) -->
+        <div class="nord-field-group">
+          <div class="nord-field-label">Password Health</div>
+          <div class="nord-health-badge" id="detail-health">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Strong Password
+          </div>
+        </div>
+
+        <!-- Website Address (Image 2) -->
+        <div class="nord-field-group">
+          <div class="nord-field-label">Website Address</div>
+          <div class="nord-field-value">
+            <a id="detail-url" href="#" target="_blank" style="color: var(--accent-blue); text-decoration: none; word-break: break-all;">
+              https://google.com
+            </a>
+          </div>
+        </div>
+
+        <!-- Notas opcionales -->
+        <div class="nord-field-group" id="detail-notes-group">
+          <div class="nord-field-label">Notes</div>
+          <div id="detail-notes" style="font-size: 12px; color: var(--text-secondary); white-space: pre-wrap;"></div>
+        </div>
       </div>
     </div>
 
-    <!-- Modal: Agregar Elemento -->
-    <div id="modal-add" class="modal" style="display: none;">
-      <div class="modal-header">
-        <span class="modal-title">Nuevo Elemento</span>
-        <button class="icon-btn" id="btn-close-add">✕</button>
+    <!-- Modal: Agregar / Editar Elemento -->
+    <div id="modal-add" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #ffffff; z-index: 150; padding: 20px; overflow-y: auto; flex-direction: column; gap: 14px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-light); padding-bottom: 10px;">
+        <span style="font-weight: 700; font-size: 16px;">Nuevo Elemento</span>
+        <button id="btn-close-modal" style="background: transparent; border: none; font-size: 18px; cursor: pointer;">✕</button>
       </div>
 
-      <div class="form-group">
-        <label>Tipo</label>
-        <select id="add-type">
-          <option value="login">Inicio de Sesión (Login)</option>
-          <option value="card">Tarjeta Bancaria</option>
-          <option value="note">Nota Segura</option>
-        </select>
+      <div class="nord-input-group">
+        <label>Nombre / Sitio</label>
+        <input type="text" id="add-name" placeholder="Ej: Google.com">
       </div>
 
-      <div class="form-group">
-        <label>Nombre / Título</label>
-        <input type="text" id="add-name" placeholder="Ej: GitHub, Banco, etc.">
+      <div class="nord-input-group">
+        <label>Usuario / Correo</label>
+        <input type="text" id="add-username" placeholder="tu@correo.com">
       </div>
 
-      <!-- Campos de Login -->
-      <div id="fields-login" class="form-group" style="display: flex; flex-direction: column; gap: 8px;">
-        <div class="form-group">
-          <label>Usuario o Correo</label>
-          <input type="text" id="add-username" placeholder="usuario@correo.com">
-        </div>
-        <div class="form-group">
-          <label>Contraseña</label>
-          <div style="display: flex; gap: 6px;">
-            <input type="password" id="add-password" style="flex: 1;">
-            <button class="btn-secondary" id="btn-gen-field" type="button" title="Generar">⚡</button>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>URL del Sitio</label>
-          <input type="text" id="add-uri" placeholder="https://ejemplo.com">
-        </div>
-      </div>
-
-      <!-- Campos de Tarjeta -->
-      <div id="fields-card" style="display: none; flex-direction: column; gap: 8px;">
-        <div class="form-group">
-          <label>Titular</label>
-          <input type="text" id="add-cardholder" placeholder="NOMBRE EN LA TARJETA">
-        </div>
-        <div class="form-group">
-          <label>Número de Tarjeta</label>
-          <input type="text" id="add-cardnumber" placeholder="4111 2222 3333 4444">
-        </div>
-        <div style="display: flex; gap: 8px;">
-          <div class="form-group" style="flex: 1;">
-            <label>Expiración (MM/AA)</label>
-            <input type="text" id="add-cardexp" placeholder="12/28">
-          </div>
-          <div class="form-group" style="flex: 1;">
-            <label>CVV</label>
-            <input type="password" id="add-cardcvv" placeholder="123" maxlength="4">
-          </div>
-        </div>
-      </div>
-
-      <!-- Campos de Nota -->
-      <div id="fields-note" style="display: none; flex-direction: column; gap: 8px;">
-        <div class="form-group">
-          <label>Contenido Secreto</label>
-          <textarea id="add-notetext" rows="6" placeholder="Escribe tu nota cifrada aquí..."></textarea>
-        </div>
-      </div>
-
-      <button class="btn-primary" id="btn-save-item">Guardar y Cifrar</button>
-    </div>
-
-    <!-- Modal: Generador de Contraseñas -->
-    <div id="modal-gen" class="modal" style="display: none;">
-      <div class="modal-header">
-        <span class="modal-title">Generador de Contraseñas</span>
-        <button class="icon-btn" id="btn-close-gen">✕</button>
-      </div>
-
-      <div class="form-group">
-        <label>Contraseña Generada</label>
+      <div class="nord-input-group">
+        <label>Contraseña</label>
         <div style="display: flex; gap: 6px;">
-          <input type="text" id="gen-output" readonly style="font-family: monospace; font-size: 13px;">
-          <button class="btn-secondary" id="btn-copy-gen" title="Copiar">📋</button>
+          <input type="password" id="add-password" style="flex: 1;" placeholder="••••••••">
+          <button id="btn-quick-gen" type="button" style="background: #f1f5f9; border: 1px solid var(--border-light); border-radius: 8px; padding: 0 12px; cursor: pointer;" title="Generar">⚡</button>
         </div>
       </div>
 
-      <div class="strength-meter">
-        <span id="gen-score-text">Fuerte</span>
-        <div class="meter-bar">
-          <div class="meter-fill" id="gen-meter-fill"></div>
-        </div>
-        <span id="gen-bits">96 bits</span>
+      <div class="nord-input-group">
+        <label>Dirección Web (URL)</label>
+        <input type="text" id="add-uri" placeholder="https://google.com">
       </div>
 
-      <div class="form-group">
-        <div style="display: flex; justify-content: space-between;">
-          <label>Longitud</label>
-          <span id="gen-len-val">20</span>
-        </div>
-        <input type="range" id="gen-length" min="8" max="64" value="20">
+      <div class="nord-input-group">
+        <label>Notas</label>
+        <textarea id="add-notes" rows="3" style="padding: 10px; border: 1px solid var(--border-light); border-radius: 8px; font-size: 13px; outline: none;"></textarea>
       </div>
 
-      <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px;">
-        <label style="display: flex; align-items: center; gap: 8px;">
-          <input type="checkbox" id="gen-upper" checked> Mayúsculas (A-Z)
-        </label>
-        <label style="display: flex; align-items: center; gap: 8px;">
-          <input type="checkbox" id="gen-lower" checked> Minúsculas (a-z)
-        </label>
-        <label style="display: flex; align-items: center; gap: 8px;">
-          <input type="checkbox" id="gen-num" checked> Números (0-9)
-        </label>
-        <label style="display: flex; align-items: center; gap: 8px;">
-          <input type="checkbox" id="gen-sym" checked> Símbolos (!@#$%)
-        </label>
-      </div>
-
-      <button class="btn-secondary" id="btn-gen-passphrase">Generar Frase de Paso (Diceware)</button>
-      <button class="btn-primary" id="btn-regenerate">Regenerar</button>
+      <button class="nord-btn-main" id="btn-save-new">Guardar en Bóveda</button>
     </div>
 
-    <!-- Toast Notification -->
-    <div id="toast" class="toast" style="display: none;"></div>
+    <!-- Toast de retroalimentación -->
+    <div id="toast" class="nord-toast" style="display: none;"></div>
   </div>
 
   <script type="module" src="./src/popup.ts"></script>
 </body>
 </html>
-

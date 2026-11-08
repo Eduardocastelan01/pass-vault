@@ -4,6 +4,8 @@ import {
   decryptData,
   matchesUri,
   generateSalt,
+  uint8ArrayToBase64,
+  base64ToUint8Array,
   DecryptedVaultItem,
   EncryptedVaultItem,
   LoginData,
@@ -47,10 +49,106 @@ let state: SessionState = {
 
 let syncWebSocket: WebSocket | null = null;
 
+async function persistSessionState(
+  vaultKey: CryptoKey,
+  email: string,
+  token: string | null,
+  salt: string,
+  authHash: string,
+  isOfflineMode: boolean
+) {
+  try {
+    const rawKey = await crypto.subtle.exportKey('raw', vaultKey);
+    const vaultKeyBase64 = uint8ArrayToBase64(new Uint8Array(rawKey));
+    await chrome.storage.session?.set({
+      session: {
+        email,
+        token,
+        vaultKeyBase64,
+        salt,
+        authHash,
+        isOfflineMode,
+      },
+    });
+  } catch (err) {
+    console.error('[PassVault] Error guardando sesión en memoria', err);
+  }
+}
+
+async function restoreSessionIfNeeded(): Promise<boolean> {
+  if (state.isUnlocked && state.vaultKey) return true;
+
+  try {
+    const sessionRes = await chrome.storage.session?.get(['session']);
+    const session = sessionRes?.session;
+    if (!session || !session.vaultKeyBase64) return false;
+
+    const vaultKeyBytes = base64ToUint8Array(session.vaultKeyBase64);
+    const vaultKey = await crypto.subtle.importKey(
+      'raw',
+      vaultKeyBytes as unknown as BufferSource,
+      { name: 'AES-GCM' },
+      true,
+      ['encrypt', 'decrypt']
+    );
+
+    state.isUnlocked = true;
+    state.isOfflineMode = Boolean(session.isOfflineMode);
+    state.email = session.email;
+    state.token = session.token || null;
+    state.salt = session.salt || null;
+    state.authHash = session.authHash || null;
+    state.vaultKey = vaultKey;
+
+    // Cargar y descifrar elementos de la caché local
+    const cached = await new Promise<LocalVaultCache | null>((resolve) => {
+      chrome.storage.local.get(['cachedVault'], (res) => {
+        resolve(res.cachedVault || null);
+      });
+    });
+
+    if (cached && cached.items) {
+      const decryptedList: DecryptedVaultItem[] = [];
+      for (const raw of cached.items) {
+        if (raw.deleted) continue;
+        try {
+          const itemData = await decryptData(raw.encryptedPayload, vaultKey);
+          decryptedList.push({
+            id: raw.id,
+            type: raw.type,
+            name: raw.name,
+            favorite: raw.favorite,
+            folderId: raw.folderId,
+            createdAt: raw.createdAt,
+            updatedAt: raw.updatedAt,
+            version: raw.version,
+            data: itemData,
+          });
+        } catch (e) {
+          console.error('[PassVault] Error al descifrar caché de sesión', e);
+        }
+      }
+      state.items = decryptedList;
+      state.lastSyncedAt = cached.lastSyncedAt;
+    }
+
+    if (state.token && state.serverUrl && !state.isOfflineMode) {
+      connectWebSocket(state.token, state.serverUrl);
+      syncVault().catch(() => {});
+    }
+
+    return true;
+  } catch (err) {
+    console.error('[PassVault] Error restaurando sesión en memoria', err);
+    return false;
+  }
+}
+
 // Inicializar configuración guardada (servidor y último email)
 chrome.storage.local.get(['serverUrl', 'email'], (result) => {
   if (result.serverUrl) state.serverUrl = result.serverUrl;
   if (result.email) state.email = result.email;
+  restoreSessionIfNeeded().catch(() => {});
 });
 
 function connectWebSocket(token: string, serverUrl: string) {
@@ -143,6 +241,7 @@ async function syncVault(): Promise<boolean> {
 // Receptor de mensajes desde Popup y Content Scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const handleAsync = async () => {
+    await restoreSessionIfNeeded();
     switch (message.type) {
       case 'GET_STATUS': {
         return {
@@ -194,6 +293,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             lastSyncedAt: new Date().toISOString(),
           },
         });
+
+        // Mantener sesión activa en memoria hasta reiniciar navegador/laptop
+        await persistSessionState(vaultKey, email, data.token, salt, authHash, false);
 
         connectWebSocket(data.token, state.serverUrl);
         return { success: true };
@@ -252,6 +354,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
           // Descargar y sincronizar
           await syncVault();
+          await persistSessionState(vaultKey, email, loginData.token, salt, authHash, false);
           connectWebSocket(loginData.token, state.serverUrl);
 
           return { success: true, count: state.items.length, offline: false };
@@ -308,6 +411,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           state.items = decryptedList;
           state.lastSyncedAt = cached.lastSyncedAt;
 
+          await persistSessionState(vaultKey, email, null, cached.salt, authHash, true);
+
           return { success: true, count: state.items.length, offline: true };
         }
       }
@@ -317,6 +422,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         state.token = null;
         state.vaultKey = null;
         state.items = [];
+        await chrome.storage.session?.remove(['session']);
         if (syncWebSocket) syncWebSocket.close();
         return { success: true };
       }

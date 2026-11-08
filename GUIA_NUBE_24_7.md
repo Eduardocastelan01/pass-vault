@@ -42,3 +42,4 @@ Si quieres que las contraseñas que agregues en tu S25 Ultra o en tu laptop se s
    - En la extensión de Brave/Chrome y en tu Samsung Galaxy S25 Ultra, en lugar de `http://localhost:3000`, ingresa tu URL:
      `https://mi-passvault.onrender.com`
    - ¡A partir de ese momento, el servidor estará encendido los 365 días del año en la nube, y tu laptop podrá estar apagada sin interrumpir el funcionamiento de tu celular!
+
