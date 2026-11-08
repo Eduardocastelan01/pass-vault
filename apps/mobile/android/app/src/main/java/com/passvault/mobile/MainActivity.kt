@@ -2,7 +2,9 @@ package com.passvault.mobile
 
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.*
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
@@ -19,6 +21,10 @@ class MainActivity : FragmentActivity() {
     private lateinit var biometricHelper: BiometricHelper
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+        )
         super.onCreate(savedInstanceState)
 
         repository = VaultRepository(applicationContext)

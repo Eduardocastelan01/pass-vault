@@ -95,7 +95,8 @@ fun VaultScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color(0xFF0C0F17))
-                    .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 12.dp)
+                    .statusBarsPadding()
+                    .padding(top = 10.dp, start = 16.dp, end = 16.dp, bottom = 12.dp)
             ) {
                 // Header estilo NordPass
                 Row(
@@ -318,6 +319,7 @@ fun VaultScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .navigationBarsPadding()
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {

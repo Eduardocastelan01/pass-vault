@@ -51,7 +51,9 @@ fun LockScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(NordDark),
+            .background(NordDark)
+            .statusBarsPadding()
+            .navigationBarsPadding(),
         contentAlignment = Alignment.Center
     ) {
         Card(
