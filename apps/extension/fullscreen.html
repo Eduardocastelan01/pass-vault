@@ -125,7 +125,14 @@
       <!-- Vista Bóveda -->
       <div id="fs-vault-view">
         <div class="fs-main-header">
-          <h1 class="fs-main-title" id="fs-view-title">Vault</h1>
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <h1 class="fs-main-title" id="fs-view-title">Vault</h1>
+            <!-- Acciones de Carpeta (Renombrar y Borrar) -->
+            <div id="fs-folder-actions" style="display: none; align-items: center; gap: 8px;">
+              <button id="fs-btn-rename-folder" class="fs-btn-secondary" style="font-size: 12px; padding: 6px 12px;">✏️ Rename</button>
+              <button id="fs-btn-delete-folder" class="fs-btn-secondary" style="font-size: 12px; padding: 6px 12px; color: var(--danger-red); border-color: #fecaca;">🗑️ Delete</button>
+            </div>
+          </div>
           <div class="fs-create-wrapper">
             <button class="fs-btn-create" id="fs-btn-create-item">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -451,6 +458,27 @@
       </div>
       <div class="fs-modal-footer">
         <button id="fs-btn-refresh-gen" class="fs-btn-primary" style="width: 100%;">⚡ Generate New</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Move Item to Folder -->
+  <div id="fs-modal-move" class="fs-modal-overlay" style="display: none;">
+    <div class="fs-modal-folder-card" style="max-width: 400px;">
+      <div class="fs-modal-folder-header">
+        <h3>Move to Folder</h3>
+        <button class="fs-modal-close" id="fs-btn-close-move">✕</button>
+      </div>
+      <div class="fs-modal-folder-body">
+        <p style="font-size: 13px; color: var(--text-dark); margin-bottom: 6px;" id="fs-move-item-name">Select destination folder:</p>
+        <div class="fs-form-group">
+          <select id="fs-move-folder-select" class="fs-input">
+            <option value="">- No Folder (Root) -</option>
+          </select>
+        </div>
+      </div>
+      <div class="fs-modal-folder-footer">
+        <button id="fs-btn-save-move" class="fs-btn-folder-save">Move Item</button>
       </div>
     </div>
   </div>

@@ -9,7 +9,7 @@ import {
   Folder,
 } from '@pass-vault/core';
 
-// Referencias del DOM
+// DOM references
 const searchInput = document.getElementById('fs-search-input') as HTMLInputElement;
 const userAvatar = document.getElementById('fs-user-avatar')!;
 const btnSync = document.getElementById('fs-btn-sync')!;
@@ -22,11 +22,22 @@ const btnSyncBanner = document.getElementById('fs-btn-sync-banner')!;
 const vaultView = document.getElementById('fs-vault-view')!;
 const settingsView = document.getElementById('fs-settings-view')!;
 const viewTitle = document.getElementById('fs-view-title')!;
+const folderActions = document.getElementById('fs-folder-actions')!;
+const btnRenameFolder = document.getElementById('fs-btn-rename-folder')!;
+const btnDeleteFolder = document.getElementById('fs-btn-delete-folder')!;
 const tableBody = document.getElementById('fs-table-body')!;
 const selectAllCheckbox = document.getElementById('fs-select-all') as HTMLInputElement;
 const thTitle = document.getElementById('fs-th-title')!;
 const thLast = document.getElementById('fs-th-last')!;
 const categoryPills = document.querySelectorAll('.fs-pill');
+
+// Modal: Move Item to Folder
+const modalMove = document.getElementById('fs-modal-move')!;
+const btnCloseMove = document.getElementById('fs-btn-close-move')!;
+const moveItemName = document.getElementById('fs-move-item-name')!;
+const moveFolderSelect = document.getElementById('fs-move-folder-select') as HTMLSelectElement;
+const btnSaveMove = document.getElementById('fs-btn-save-move')!;
+let movingItemId: string | null = null;
 
 // Sidebar nav
 const navItems = document.querySelectorAll('.fs-nav-item');
@@ -203,6 +214,7 @@ function renderFoldersList() {
       currentNav = `folder-${f.id}`;
       currentFolderId = f.id;
       viewTitle.textContent = f.name;
+      folderActions.style.display = 'flex';
       vaultView.style.display = 'block';
       settingsView.style.display = 'none';
       renderTable();
@@ -218,11 +230,17 @@ function renderFoldersList() {
 
 function populateFolderSelect() {
   itemFolder.innerHTML = '<option value="">- No Folder -</option>';
+  moveFolderSelect.innerHTML = '<option value="">- No Folder (Root) -</option>';
   for (const f of folders) {
     const opt = document.createElement('option');
     opt.value = f.id;
     opt.textContent = f.name;
     itemFolder.appendChild(opt);
+
+    const optMove = document.createElement('option');
+    optMove.value = f.id;
+    optMove.textContent = f.name;
+    moveFolderSelect.appendChild(optMove);
   }
 }
 
@@ -368,11 +386,14 @@ function renderTable() {
         </div>
       </td>
       <td style="color: var(--text-muted);">${relativeTime}</td>
-      <td style="color: var(--text-muted);">${folderLabel}</td>
+      <td style="color: var(--text-muted);">
+        <span class="fs-folder-badge" style="background: #f1f5f9; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 500;">${folderLabel}</span>
+      </td>
       <td>
         <div style="display: flex; gap: 6px;">
           ${copyUserVal ? `<button class="fs-btn-secondary" style="padding: 4px 8px; font-size: 11px;" data-copy-u title="Copy data">📋</button>` : ''}
           ${copyPassVal ? `<button class="fs-btn-secondary" style="padding: 4px 8px; font-size: 11px;" data-copy-p title="Copy secret">🔑</button>` : ''}
+          <button class="fs-btn-secondary" style="padding: 4px 8px; font-size: 11px;" data-move title="Move to folder">📁</button>
         </div>
       </td>
     `;
@@ -385,6 +406,11 @@ function renderTable() {
     tr.querySelector('[data-copy-p]')?.addEventListener('click', (e) => {
       e.stopPropagation();
       copyText(copyPassVal, 'Secreto');
+    });
+
+    tr.querySelector('[data-move]')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openMoveModal(item);
     });
 
     tableBody.appendChild(tr);
@@ -453,6 +479,7 @@ navItems.forEach((item) => {
 
     currentNav = nav;
     currentFolderId = null;
+    folderActions.style.display = 'none';
     vaultView.style.display = 'block';
     settingsView.style.display = 'none';
 
@@ -462,6 +489,115 @@ navItems.forEach((item) => {
 
     renderTable();
   });
+});
+
+// ================= GESTIÓN Y TRASPASO DE CARPETAS =================
+btnDeleteFolder.addEventListener('click', async () => {
+  if (!currentFolderId) return;
+  const folder = folders.find((f) => f.id === currentFolderId);
+  const name = folder ? folder.name : 'esta carpeta';
+
+  const ok = confirm(
+    `¿Estás seguro de que deseas eliminar la carpeta "${name}"?\n\nLas credenciales dentro de ella NO se borrarán: se moverán a tu bóveda general (sin carpeta).`
+  );
+  if (!ok) return;
+
+  // Desvincular items
+  const affected = items.filter((i) => i.folderId === currentFolderId);
+  for (const item of affected) {
+    item.folderId = null;
+    await chrome.runtime.sendMessage({
+      type: 'SAVE_ITEM',
+      item: {
+        id: item.id,
+        type: item.type,
+        name: item.name,
+        favorite: item.favorite,
+        folderId: null,
+        data: item.data,
+      },
+    });
+  }
+
+  // Eliminar carpeta
+  folders = folders.filter((f) => f.id !== currentFolderId);
+  await chrome.storage.local.set({ folders });
+
+  currentFolderId = null;
+  currentNav = 'vault';
+  viewTitle.textContent = 'Vault';
+  folderActions.style.display = 'none';
+
+  navItems.forEach((i) => i.classList.remove('active'));
+  document.querySelector('.fs-nav-item[data-nav="vault"]')?.classList.add('active');
+
+  renderFoldersList();
+  populateFolderSelect();
+  renderTable();
+  showToast(`✓ Carpeta "${name}" eliminada`);
+});
+
+btnRenameFolder.addEventListener('click', async () => {
+  if (!currentFolderId) return;
+  const folder = folders.find((f) => f.id === currentFolderId);
+  if (!folder) return;
+
+  const newName = prompt('Nuevo nombre para la carpeta:', folder.name);
+  if (!newName || newName.trim() === '' || newName.trim() === folder.name) return;
+
+  folder.name = newName.trim();
+  await chrome.storage.local.set({ folders });
+  viewTitle.textContent = folder.name;
+
+  renderFoldersList();
+  populateFolderSelect();
+  renderTable();
+  showToast(`✓ Carpeta renombrada a "${folder.name}"`);
+});
+
+// Modal para Mover Credencial a Otra Carpeta
+function openMoveModal(item: DecryptedVaultItem) {
+  movingItemId = item.id;
+  moveItemName.textContent = `Mover "${item.name}" a la carpeta:`;
+  moveFolderSelect.value = item.folderId || '';
+  modalMove.style.display = 'flex';
+}
+
+btnCloseMove.addEventListener('click', () => {
+  modalMove.style.display = 'none';
+});
+
+btnSaveMove.addEventListener('click', async () => {
+  if (!movingItemId) return;
+  const targetItem = items.find((i) => i.id === movingItemId);
+  if (!targetItem) return;
+
+  const targetFolderId = moveFolderSelect.value || null;
+  targetItem.folderId = targetFolderId;
+
+  btnSaveMove.textContent = 'Moving...';
+  try {
+    await chrome.runtime.sendMessage({
+      type: 'SAVE_ITEM',
+      item: {
+        id: targetItem.id,
+        type: targetItem.type,
+        name: targetItem.name,
+        favorite: targetItem.favorite,
+        folderId: targetFolderId,
+        data: targetItem.data,
+      },
+    });
+
+    modalMove.style.display = 'none';
+    const folderObj = folders.find((f) => f.id === targetFolderId);
+    showToast(folderObj ? `✓ Movido a "${folderObj.name}"` : '✓ Movido a Bóveda Principal');
+    renderTable();
+  } catch (err: any) {
+    alert(err.message || 'Error al mover elemento');
+  } finally {
+    btnSaveMove.textContent = 'Move Item';
+  }
 });
 
 function showSettingsView() {

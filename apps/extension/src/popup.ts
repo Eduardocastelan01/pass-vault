@@ -529,7 +529,40 @@ function renderItems() {
             <div class="nord-item-title">${f.name}</div>
             <div class="nord-item-sub">${count} elementos</div>
           </div>
+          <div class="nord-item-actions" style="display: flex;">
+            <button class="nord-btn-icon-sm" data-delete-f="${f.id}" title="Eliminar carpeta" style="color: var(--danger-red);">🗑️</button>
+          </div>
         `;
+
+        row.querySelector(`[data-delete-f="${f.id}"]`)?.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const ok = confirm(`¿Deseas eliminar la carpeta "${f.name}"?\n\nLas credenciales dentro de ella se mantendrán en tu bóveda general.`);
+          if (!ok) return;
+
+          // Desvincular items
+          const affected = currentItems.filter((i) => i.folderId === f.id);
+          for (const item of affected) {
+            item.folderId = null;
+            await chrome.runtime.sendMessage({
+              type: 'SAVE_ITEM',
+              item: {
+                id: item.id,
+                type: item.type,
+                name: item.name,
+                favorite: item.favorite,
+                folderId: null,
+                data: item.data,
+              },
+            });
+          }
+
+          popupFolders = popupFolders.filter((item) => item.id !== f.id);
+          await chrome.storage.local.set({ folders: popupFolders });
+          populatePopupFolderSelect();
+          renderItems();
+          showToast(`✓ Carpeta "${f.name}" eliminada`);
+        });
+
         itemsList.appendChild(row);
       }
     }
@@ -680,6 +713,12 @@ function openDetailView(item: DecryptedVaultItem) {
   detailPassword.textContent = password ? '••••••••••••' : '(Sin secreto)';
   detailUrl.textContent = url;
   detailUrl.href = url;
+
+  const folderObj = popupFolders.find((f) => f.id === item.folderId);
+  const detailFolderName = document.getElementById('detail-folder-name');
+  if (detailFolderName) {
+    detailFolderName.textContent = folderObj ? folderObj.name : '- Sin Carpeta -';
+  }
 
   if (notes) {
     detailNotes.textContent = notes;
