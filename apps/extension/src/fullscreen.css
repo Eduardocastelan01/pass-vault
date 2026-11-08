@@ -234,6 +234,209 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  position: relative;
+}
+
+.fs-create-wrapper {
+  position: relative;
+}
+
+/* Dropdown Crear Elemento (Image 2) */
+.fs-create-dropdown {
+  position: absolute;
+  top: 48px;
+  right: 0;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--border-color);
+  width: 200px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 100;
+  animation: fadeIn 0.12s ease-out;
+}
+
+.fs-create-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.fs-create-menu-item:hover {
+  background-color: var(--card-hover);
+}
+
+.fs-create-menu-item svg {
+  color: #64748b;
+}
+
+.fs-create-menu-item:hover svg {
+  color: var(--text-dark);
+}
+
+/* Modales y Formularios Especializados (Image 3 y 4) */
+.fs-type-badge-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  margin-bottom: 8px;
+}
+
+.fs-type-badge-icon.login {
+  background: #0284c7;
+}
+
+.fs-type-badge-icon.card {
+  background: #8b5cf6;
+}
+
+.fs-type-badge-icon.note {
+  background: #f59e0b;
+}
+
+.fs-type-badge-icon.identity {
+  background: #10b981;
+}
+
+.fs-form-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-top: 8px;
+  margin-bottom: 2px;
+}
+
+.fs-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.fs-input-container {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0 10px;
+  transition: border-color 0.15s ease;
+}
+
+.fs-input-container:focus-within {
+  border-color: var(--accent-blue);
+}
+
+.fs-input-container input {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 10px 4px;
+  font-size: 13px;
+  background: transparent;
+  font-family: inherit;
+}
+
+.fs-input-icon-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+.fs-input-icon-btn:hover {
+  color: var(--text-dark);
+}
+
+/* Modal Add New Folder (Image 5) */
+.fs-modal-folder-card {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  gap: 20px;
+  animation: scaleUp 0.18s ease-out;
+}
+
+.fs-modal-folder-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fs-modal-folder-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.fs-folder-input-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid var(--border-color);
+  border-radius: 10px;
+  padding: 12px 14px;
+  gap: 12px;
+  transition: border-color 0.15s ease;
+}
+
+.fs-folder-input-wrapper:focus-within {
+  border-color: #0284c7;
+}
+
+.fs-folder-input-wrapper input {
+  border: none;
+  outline: none;
+  font-size: 14px;
+  flex: 1;
+  font-family: inherit;
+  color: var(--text-dark);
+}
+
+.fs-folder-input-wrapper input::placeholder {
+  color: var(--text-muted);
+}
+
+.fs-modal-folder-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.fs-btn-folder-save {
+  background-color: #0c0f15;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 24px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.fs-btn-folder-save:hover {
+  background-color: #1e293b;
 }
 
 .fs-main-title {

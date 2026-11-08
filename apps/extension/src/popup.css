@@ -729,3 +729,133 @@ body {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
   z-index: 200;
 }
+
+/* Selector de tipo en Popup */
+.popup-type-selector {
+  display: flex;
+  gap: 4px;
+  background-color: #f1f5f9;
+  padding: 4px;
+  border-radius: 10px;
+}
+
+.popup-type-tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  white-space: nowrap;
+}
+
+.popup-type-tab:hover {
+  color: var(--text-primary);
+}
+
+.popup-type-tab.active {
+  background-color: #ffffff;
+  color: var(--text-primary);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.popup-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* Modal Folder Popup (Image 5) */
+.nord-modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(12, 15, 21, 0.55);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 250;
+  padding: 16px;
+  animation: fadeIn 0.12s ease-out;
+}
+
+.nord-modal-folder-card {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  box-shadow: 0 16px 35px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 16px;
+}
+
+.nord-modal-folder-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nord-modal-folder-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.nord-modal-close {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.nord-folder-input-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid var(--border-light);
+  border-radius: 10px;
+  padding: 10px 12px;
+  gap: 10px;
+}
+
+.nord-folder-input-wrapper:focus-within {
+  border-color: var(--accent-blue);
+}
+
+.nord-folder-input-wrapper input {
+  border: none;
+  outline: none;
+  font-size: 13px;
+  flex: 1;
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.nord-modal-folder-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.nord-btn-folder-save {
+  background-color: #0c0f15;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 20px;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.nord-btn-folder-save:hover {
+  background-color: #1e293b;
+}

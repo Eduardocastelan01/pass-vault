@@ -5,6 +5,8 @@ import {
   LoginData,
   CardData,
   NoteData,
+  IdentityData,
+  Folder,
 } from '@pass-vault/core';
 
 // Referencias del DOM
@@ -50,7 +52,7 @@ const checkSortLast = document.getElementById('check-sort-last')!;
 const itemsCounter = document.getElementById('items-counter')!;
 const itemsList = document.getElementById('items-list')!;
 
-// Bottom Bar (Image 1 y 3)
+// Bottom Bar
 const btnSettingsOpen = document.getElementById('btn-settings-open')!;
 const btnSync = document.getElementById('btn-sync')!;
 const btnAddItem = document.getElementById('btn-add-item')!;
@@ -74,32 +76,71 @@ const btnActionShare = document.getElementById('btn-action-share')!;
 const btnActionAttach = document.getElementById('btn-action-attach')!;
 const btnActionMore = document.getElementById('btn-action-more')!;
 
-// Modal Agregar / Editar
+// Modal Agregar / Editar Especializado
 const modalAdd = document.getElementById('modal-add')!;
+const popupAddModalTitle = document.getElementById('popup-add-modal-title')!;
 const btnCloseModal = document.getElementById('btn-close-modal')!;
+const popupTypeTabs = document.querySelectorAll('.popup-type-tab');
+
+// Campos Comunes
 const addName = document.getElementById('add-name') as HTMLInputElement;
+const addFolderSelect = document.getElementById('add-folder-select') as HTMLSelectElement;
+const addNotes = document.getElementById('add-notes') as HTMLTextAreaElement;
+const popupGroupNotes = document.getElementById('popup-group-notes')!;
+const btnSaveNew = document.getElementById('btn-save-new') as HTMLButtonElement;
+
+// 1. Login
+const popupFieldsLogin = document.getElementById('popup-fields-login')!;
 const addUsername = document.getElementById('add-username') as HTMLInputElement;
 const addPassword = document.getElementById('add-password') as HTMLInputElement;
 const addUri = document.getElementById('add-uri') as HTMLInputElement;
-const addNotes = document.getElementById('add-notes') as HTMLTextAreaElement;
 const btnToggleAddPass = document.getElementById('btn-toggle-add-pass')!;
 const btnQuickGen = document.getElementById('btn-quick-gen')!;
 const addStrengthFeedback = document.getElementById('add-strength-feedback')!;
-const btnSaveNew = document.getElementById('btn-save-new') as HTMLButtonElement;
+
+// 2. Card (Image 3 y 4)
+const popupFieldsCard = document.getElementById('popup-fields-card')!;
+const addCardHolder = document.getElementById('add-card-holder') as HTMLInputElement;
+const addCardNumber = document.getElementById('add-card-number') as HTMLInputElement;
+const addCardExp = document.getElementById('add-card-exp') as HTMLInputElement;
+const addCardCvv = document.getElementById('add-card-cvv') as HTMLInputElement;
+const addCardPin = document.getElementById('add-card-pin') as HTMLInputElement;
+const addCardZip = document.getElementById('add-card-zip') as HTMLInputElement;
+const btnToggleAddCvv = document.getElementById('btn-toggle-add-cvv')!;
+const btnToggleAddPin = document.getElementById('btn-toggle-add-pin')!;
+
+// 3. Note
+const popupFieldsNote = document.getElementById('popup-fields-note')!;
+const addNoteContent = document.getElementById('add-note-content') as HTMLTextAreaElement;
+
+// 4. Identity
+const popupFieldsIdentity = document.getElementById('popup-fields-identity')!;
+const addIdFirst = document.getElementById('add-id-first') as HTMLInputElement;
+const addIdLast = document.getElementById('add-id-last') as HTMLInputElement;
+const addIdEmail = document.getElementById('add-id-email') as HTMLInputElement;
+const addIdPhone = document.getElementById('add-id-phone') as HTMLInputElement;
+const addIdAddress = document.getElementById('add-id-address') as HTMLInputElement;
+
+// Modal Carpeta en Popup (Image 5)
+const popupModalFolder = document.getElementById('popup-modal-folder')!;
+const btnClosePopupFolder = document.getElementById('btn-close-popup-folder')!;
+const popupFolderNameInput = document.getElementById('popup-folder-name-input') as HTMLInputElement;
+const btnSavePopupFolder = document.getElementById('btn-save-popup-folder')!;
 
 const toastEl = document.getElementById('toast')!;
 
 // Estado
 let currentItems: DecryptedVaultItem[] = [];
+let popupFolders: Folder[] = [];
 let isRegisterMode = false;
 let currentDetailItem: DecryptedVaultItem | null = null;
 let isPasswordVisibleInDetail = false;
 let isPasswordVisibleInAdd = false;
 let editingItemId: string | null = null;
 let currentVaultSection = 'vault'; // 'vault' | 'shared' | 'trash' | 'folders'
+let activePopupAddType: 'login' | 'card' | 'note' | 'identity' = 'login';
 let sortField: 'title' | 'last_used' = 'last_used';
 let sortOrder: 'asc' | 'desc' = 'desc';
-let userEmailAddress = '';
 
 function showToast(msg: string) {
   toastEl.textContent = msg;
@@ -131,7 +172,6 @@ function getFaviconUrl(domain: string): string {
 }
 
 function updateUserInitials(email: string) {
-  userEmailAddress = email;
   const parts = email.split('@')[0];
   const initials = parts.slice(0, 2).charAt(0).toUpperCase() + parts.slice(0, 2).charAt(1).toLowerCase();
   const displayInitials = initials || 'Je';
@@ -140,8 +180,28 @@ function updateUserInitials(email: string) {
   accountEmailDisplay.textContent = email;
 }
 
+async function loadPopupFolders() {
+  const res = await new Promise<{ folders?: Folder[] }>((resolve) => {
+    chrome.storage.local.get(['folders'], (data) => resolve(data));
+  });
+  popupFolders = res.folders || [];
+  populatePopupFolderSelect();
+}
+
+function populatePopupFolderSelect() {
+  addFolderSelect.innerHTML = '<option value="">- Sin Carpeta -</option>';
+  for (const f of popupFolders) {
+    const opt = document.createElement('option');
+    opt.value = f.id;
+    opt.textContent = f.name;
+    addFolderSelect.appendChild(opt);
+  }
+}
+
 // Inicialización
 async function init() {
+  await loadPopupFolders();
+
   const status = await chrome.runtime.sendMessage({ type: 'GET_STATUS' });
 
   if (status.serverUrl) authServer.value = status.serverUrl;
@@ -157,13 +217,15 @@ async function init() {
     showAuthView();
   }
 
-  // Prellenar URL de la pestaña activa en el modal de agregar
+  // Prellenar URL de la pestaña activa en el modal de agregar si está en modo login
   chrome.tabs?.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs && tabs[0]?.url && !tabs[0].url.startsWith('chrome://') && !tabs[0].url.startsWith('brave://')) {
       addUri.value = tabs[0].url;
       try {
         const hostname = new URL(tabs[0].url).hostname.replace(/^www\./, '');
-        addName.value = hostname.charAt(0).toUpperCase() + hostname.slice(1);
+        if (!addName.value) {
+          addName.value = hostname.charAt(0).toUpperCase() + hostname.slice(1);
+        }
       } catch {}
     }
   });
@@ -265,7 +327,6 @@ btnSortToggle.addEventListener('click', (e) => {
   sortDropdownMenu.style.display = sortDropdownMenu.style.display === 'none' ? 'flex' : 'none';
 });
 
-// Opciones de orden: Ascending / Descending
 document.querySelectorAll('.nord-sort-option[data-order]').forEach((opt) => {
   opt.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -285,7 +346,6 @@ document.querySelectorAll('.nord-sort-option[data-order]').forEach((opt) => {
   });
 });
 
-// Opciones de orden: Title / Last Used
 document.querySelectorAll('.nord-sort-option[data-sort]').forEach((opt) => {
   opt.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -307,7 +367,6 @@ document.querySelectorAll('.nord-sort-option[data-sort]').forEach((opt) => {
   });
 });
 
-// Cerrar menús al hacer clic fuera
 document.addEventListener('click', (e) => {
   const target = e.target as Node;
   if (!vaultDropdown.contains(target) && !btnVaultMenu.contains(target)) {
@@ -441,14 +500,39 @@ function renderItems() {
   }
 
   if (currentVaultSection === 'folders') {
-    itemsCounter.textContent = '0 items';
-    itemsList.innerHTML = `
-      <div style="text-align: center; color: var(--text-muted); padding: 48px 16px; font-size: 13px;">
-        <div style="font-size: 28px; margin-bottom: 8px;">📁</div>
-        <strong>Folders</strong>
-        <p style="margin-top: 6px; font-size: 12px;">No has creado carpetas aún.</p>
-      </div>
-    `;
+    itemsCounter.textContent = `${popupFolders.length} folders`;
+    if (popupFolders.length === 0) {
+      itemsList.innerHTML = `
+        <div style="text-align: center; color: var(--text-muted); padding: 40px 16px; font-size: 13px;">
+          <div style="font-size: 28px; margin-bottom: 8px;">📁</div>
+          <strong>No hay carpetas creadas</strong>
+          <p style="margin-top: 6px; font-size: 12px; margin-bottom: 16px;">Crea carpetas para organizar tus contraseñas y notas.</p>
+          <button id="btn-popup-add-folder-empty" class="nord-btn-main" style="width: auto; padding: 8px 16px;">+ Nueva Carpeta</button>
+        </div>
+      `;
+      itemsList.querySelector('#btn-popup-add-folder-empty')?.addEventListener('click', openPopupFolderModal);
+    } else {
+      itemsList.innerHTML = `
+        <div style="display: flex; justify-content: flex-end; padding: 6px 8px;">
+          <button id="btn-popup-add-folder-action" style="background: transparent; border: none; color: var(--accent-blue); font-weight: 600; cursor: pointer; font-size: 12px;">+ Nueva Carpeta</button>
+        </div>
+      `;
+      itemsList.querySelector('#btn-popup-add-folder-action')?.addEventListener('click', openPopupFolderModal);
+
+      for (const f of popupFolders) {
+        const count = currentItems.filter((i) => i.folderId === f.id).length;
+        const row = document.createElement('div');
+        row.className = 'nord-item-row';
+        row.innerHTML = `
+          <div class="nord-item-favicon" style="background: #e0f2fe; color: #0284c7;">📁</div>
+          <div class="nord-item-info">
+            <div class="nord-item-title">${f.name}</div>
+            <div class="nord-item-sub">${count} elementos</div>
+          </div>
+        `;
+        itemsList.appendChild(row);
+      }
+    }
     return;
   }
 
@@ -491,6 +575,7 @@ function renderItems() {
     let sub = '';
     let copyUserVal = '';
     let copyPassVal = '';
+    let iconHtml = '';
 
     if (item.type === 'login') {
       const data = item.data as LoginData;
@@ -498,38 +583,47 @@ function renderItems() {
       domain = (data.uris && data.uris[0]) ? getDomainFromUrl(data.uris[0]) : getDomainFromUrl(item.name);
       copyUserVal = data.username;
       copyPassVal = data.password;
+      const faviconUrl = getFaviconUrl(domain);
+      iconHtml = `<img class="nord-item-favicon" src="${faviconUrl}" onerror="this.src='icons/icon48.png';" alt="icon">`;
     } else if (item.type === 'card') {
       const data = item.data as CardData;
       sub = `•••• ${data.number?.slice(-4) || 'Tarjeta'}`;
       copyUserVal = data.number;
+      copyPassVal = data.cvv || '';
+      iconHtml = `<div class="nord-item-favicon" style="background: #ede9fe; color: #8b5cf6;">💳</div>`;
     } else if (item.type === 'note') {
       const data = item.data as NoteData;
       sub = data.text ? data.text.slice(0, 32) + '...' : 'Nota cifrada';
       copyUserVal = data.text;
+      iconHtml = `<div class="nord-item-favicon" style="background: #fef3c7; color: #f59e0b;">📝</div>`;
+    } else if (item.type === 'identity') {
+      const data = item.data as IdentityData;
+      sub = `${data.firstName || ''} ${data.lastName || ''}`.trim() || data.email || 'Contacto';
+      copyUserVal = data.email || '';
+      copyPassVal = data.phone || '';
+      iconHtml = `<div class="nord-item-favicon" style="background: #d1fae5; color: #10b981;">👤</div>`;
     }
 
-    const faviconUrl = getFaviconUrl(domain);
-
     row.innerHTML = `
-      <img class="nord-item-favicon" src="${faviconUrl}" onerror="this.src='icons/icon48.png';" alt="icon">
+      ${iconHtml}
       <div class="nord-item-info">
         <div class="nord-item-title">${item.name}</div>
         <div class="nord-item-sub">${sub}</div>
       </div>
       <div class="nord-item-actions">
-        ${copyUserVal ? `<button class="nord-btn-icon-sm" data-copy-u title="Copiar usuario">👤</button>` : ''}
-        ${copyPassVal ? `<button class="nord-btn-icon-sm" data-copy-p title="Copiar contraseña">🔑</button>` : ''}
+        ${copyUserVal ? `<button class="nord-btn-icon-sm" data-copy-u title="Copiar dato">📋</button>` : ''}
+        ${copyPassVal ? `<button class="nord-btn-icon-sm" data-copy-p title="Copiar secreto">🔑</button>` : ''}
       </div>
     `;
 
     row.querySelector('[data-copy-u]')?.addEventListener('click', (e) => {
       e.stopPropagation();
-      copyText(copyUserVal, 'Usuario');
+      copyText(copyUserVal, 'Dato');
     });
 
     row.querySelector('[data-copy-p]')?.addEventListener('click', (e) => {
       e.stopPropagation();
-      copyText(copyPassVal, 'Contraseña');
+      copyText(copyPassVal, 'Secreto');
     });
 
     row.addEventListener('click', () => {
@@ -560,22 +654,30 @@ function openDetailView(item: DecryptedVaultItem) {
     url = (data.uris && data.uris[0]) ? data.uris[0] : `https://${getDomainFromUrl(item.name)}`;
     domain = getDomainFromUrl(url);
     notes = data.notes || '';
+    detailFavicon.src = getFaviconUrl(domain);
   } else if (item.type === 'card') {
     const data = item.data as CardData;
-    username = `${data.brand?.toUpperCase() || 'TARJETA'} - Exp: ${data.expMonth}/${data.expYear}`;
-    password = data.number || '';
-    notes = `CVV: ${data.cvv} | Titular: ${data.cardholderName}`;
+    username = `Titular: ${data.cardholderName || 'No indicado'}`;
+    password = `No: ${data.number} | CVV: ${data.cvv} | Exp: ${data.expMonth}/${data.expYear}`;
+    notes = data.notes || '';
+    detailFavicon.src = 'icons/icon48.png';
   } else if (item.type === 'note') {
     const data = item.data as NoteData;
     username = 'Nota Segura';
     password = '';
     notes = data.text || '';
+    detailFavicon.src = 'icons/icon48.png';
+  } else if (item.type === 'identity') {
+    const data = item.data as IdentityData;
+    username = `${data.firstName || ''} ${data.lastName || ''}`.trim();
+    password = `${data.email || ''} | ${data.phone || ''}`;
+    notes = [data.address ? `Dirección: ${data.address}` : '', data.notes || ''].filter(Boolean).join('\n');
+    detailFavicon.src = 'icons/icon48.png';
   }
 
-  detailFavicon.src = getFaviconUrl(domain);
   detailTitle.textContent = item.name;
   detailUsername.textContent = username;
-  detailPassword.textContent = password ? '••••••••••••' : '(Sin contraseña)';
+  detailPassword.textContent = password ? '••••••••••••' : '(Sin secreto)';
   detailUrl.textContent = url;
   detailUrl.href = url;
 
@@ -586,7 +688,7 @@ function openDetailView(item: DecryptedVaultItem) {
     detailNotesGroup.style.display = 'none';
   }
 
-  if (password) {
+  if (password && item.type === 'login') {
     const strength = evaluatePasswordStrength(password);
     if (strength.score >= 3) {
       detailHealth.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Strong Password`;
@@ -597,6 +699,8 @@ function openDetailView(item: DecryptedVaultItem) {
       detailHealth.style.color = '#eab308';
       detailHealth.style.backgroundColor = '#fefce8';
     }
+  } else {
+    detailHealth.style.display = 'none';
   }
 
   viewDetail.style.display = 'flex';
@@ -608,7 +712,12 @@ btnDetailBack.addEventListener('click', () => {
 
 btnToggleDetailPass.addEventListener('click', () => {
   if (!currentDetailItem) return;
-  const pass = (currentDetailItem.data as LoginData).password || '';
+  let pass = '';
+  if (currentDetailItem.type === 'login') pass = (currentDetailItem.data as LoginData).password || '';
+  else if (currentDetailItem.type === 'card') {
+    const d = currentDetailItem.data as CardData;
+    pass = `No: ${d.number} | CVV: ${d.cvv} | PIN: ${d.pin || '-'}`;
+  }
   isPasswordVisibleInDetail = !isPasswordVisibleInDetail;
   detailPassword.textContent = isPasswordVisibleInDetail ? pass : '••••••••••••';
   btnToggleDetailPass.textContent = isPasswordVisibleInDetail ? '🙈' : '👁️';
@@ -616,24 +725,26 @@ btnToggleDetailPass.addEventListener('click', () => {
 
 btnCopyUsername.addEventListener('click', () => {
   if (currentDetailItem) {
-    const u = (currentDetailItem.data as LoginData).username || '';
+    const u = detailUsername.textContent || '';
     copyText(u, 'Usuario');
   }
 });
 
 btnCopyPassword.addEventListener('click', () => {
   if (currentDetailItem) {
-    const p = (currentDetailItem.data as LoginData).password || '';
-    copyText(p, 'Contraseña');
+    let p = '';
+    if (currentDetailItem.type === 'login') p = (currentDetailItem.data as LoginData).password || '';
+    else if (currentDetailItem.type === 'card') p = (currentDetailItem.data as CardData).number || '';
+    copyText(p, 'Secreto');
   }
 });
 
 btnActionShare.addEventListener('click', () => {
-  showToast('Compartir: Próximamente disponible');
+  showToast('Compartir: Próximamente');
 });
 
 btnActionAttach.addEventListener('click', () => {
-  showToast('Adjuntos cifrados: Próximamente disponible');
+  showToast('Adjuntos: Próximamente');
 });
 
 btnActionMore.addEventListener('click', () => {
@@ -643,15 +754,38 @@ btnActionMore.addEventListener('click', () => {
 btnDetailEdit.addEventListener('click', () => {
   if (!currentDetailItem) return;
   editingItemId = currentDetailItem.id;
+  setPopupFormType(currentDetailItem.type);
   addName.value = currentDetailItem.name;
+  addFolderSelect.value = currentDetailItem.folderId || '';
+
   if (currentDetailItem.type === 'login') {
     const data = currentDetailItem.data as LoginData;
     addUsername.value = data.username || '';
     addPassword.value = data.password || '';
     addUri.value = (data.uris && data.uris[0]) || '';
     addNotes.value = data.notes || '';
+  } else if (currentDetailItem.type === 'card') {
+    const data = currentDetailItem.data as CardData;
+    addCardHolder.value = data.cardholderName || '';
+    addCardNumber.value = data.number || '';
+    addCardExp.value = `${data.expMonth}/${data.expYear}`;
+    addCardCvv.value = data.cvv || '';
+    addCardPin.value = data.pin || '';
+    addNotes.value = data.notes || '';
+  } else if (currentDetailItem.type === 'note') {
+    const data = currentDetailItem.data as NoteData;
+    addNoteContent.value = data.text || '';
+  } else if (currentDetailItem.type === 'identity') {
+    const data = currentDetailItem.data as IdentityData;
+    addIdFirst.value = data.firstName || '';
+    addIdLast.value = data.lastName || '';
+    addIdEmail.value = data.email || '';
+    addIdPhone.value = data.phone || '';
+    addIdAddress.value = data.address || '';
+    addNotes.value = data.notes || '';
   }
-  btnSaveNew.textContent = 'Actualizar Credencial';
+
+  btnSaveNew.textContent = 'Actualizar Elemento';
   modalAdd.style.display = 'flex';
 });
 
@@ -668,21 +802,33 @@ btnSync.addEventListener('click', async () => {
   }
 });
 
-// Abre pantalla completa en pestaña dedicada (Image 2)
 btnFullscreen.addEventListener('click', () => {
   chrome.tabs.create({ url: chrome.runtime.getURL('fullscreen.html') });
 });
 
-// Botón de Ajustes: Lleva a la pantalla completa en la sección de Settings
 btnSettingsOpen.addEventListener('click', () => {
   chrome.tabs.create({ url: chrome.runtime.getURL('fullscreen.html#settings') });
 });
 
 btnAddItem.addEventListener('click', () => {
   editingItemId = null;
+  setPopupFormType('login');
   addName.value = '';
   addUsername.value = '';
   addPassword.value = '';
+  addUri.value = '';
+  addCardHolder.value = '';
+  addCardNumber.value = '';
+  addCardExp.value = '';
+  addCardCvv.value = '';
+  addCardPin.value = '';
+  addCardZip.value = '';
+  addNoteContent.value = '';
+  addIdFirst.value = '';
+  addIdLast.value = '';
+  addIdEmail.value = '';
+  addIdPhone.value = '';
+  addIdAddress.value = '';
   addNotes.value = '';
   addPassword.type = 'password';
   isPasswordVisibleInAdd = false;
@@ -692,23 +838,57 @@ btnAddItem.addEventListener('click', () => {
   modalAdd.style.display = 'flex';
 });
 
-// ================= MODAL AGREGAR / EDITAR =================
+// ================= MODAL AGREGAR: PESTAÑAS ESPECIALIZADAS =================
+function setPopupFormType(type: 'login' | 'card' | 'note' | 'identity') {
+  activePopupAddType = type;
+  popupTypeTabs.forEach((tab) => {
+    tab.classList.toggle('active', tab.getAttribute('data-popup-type') === type);
+  });
+
+  popupFieldsLogin.style.display = 'none';
+  popupFieldsCard.style.display = 'none';
+  popupFieldsNote.style.display = 'none';
+  popupFieldsIdentity.style.display = 'none';
+
+  if (type === 'login') {
+    popupAddModalTitle.textContent = 'Nueva Contraseña';
+    popupFieldsLogin.style.display = 'flex';
+    popupGroupNotes.style.display = 'flex';
+  } else if (type === 'card') {
+    popupAddModalTitle.textContent = 'Nueva Tarjeta';
+    popupFieldsCard.style.display = 'flex';
+    popupGroupNotes.style.display = 'flex';
+  } else if (type === 'note') {
+    popupAddModalTitle.textContent = 'Nueva Nota Segura';
+    popupFieldsNote.style.display = 'flex';
+    popupGroupNotes.style.display = 'none';
+  } else if (type === 'identity') {
+    popupAddModalTitle.textContent = 'Nuevo Contacto';
+    popupFieldsIdentity.style.display = 'flex';
+    popupGroupNotes.style.display = 'flex';
+  }
+}
+
+popupTypeTabs.forEach((tab) => {
+  tab.addEventListener('click', () => {
+    const t = tab.getAttribute('data-popup-type') as 'login' | 'card' | 'note' | 'identity';
+    setPopupFormType(t);
+  });
+});
+
 btnCloseModal.addEventListener('click', () => {
   modalAdd.style.display = 'none';
 });
 
-// Botón de ver / ocultar contraseña sugerida (feedback del usuario)
 btnToggleAddPass.addEventListener('click', () => {
   isPasswordVisibleInAdd = !isPasswordVisibleInAdd;
   addPassword.type = isPasswordVisibleInAdd ? 'text' : 'password';
   btnToggleAddPass.textContent = isPasswordVisibleInAdd ? '🙈' : '👁️';
 });
 
-// Botón de generación rápida de contraseña sugerida (⚡)
 btnQuickGen.addEventListener('click', () => {
   const p = generatePassword({ length: 20 });
   addPassword.value = p;
-  // Hacerla visible inmediatamente para que el usuario pueda verla
   addPassword.type = 'text';
   isPasswordVisibleInAdd = true;
   btnToggleAddPass.textContent = '🙈';
@@ -717,16 +897,82 @@ btnQuickGen.addEventListener('click', () => {
   showToast('Contraseña aleatoria generada');
 });
 
+btnToggleAddCvv.addEventListener('click', () => {
+  addCardCvv.type = addCardCvv.type === 'password' ? 'text' : 'password';
+  btnToggleAddCvv.textContent = addCardCvv.type === 'password' ? '👁️' : '🙈';
+});
+
+btnToggleAddPin.addEventListener('click', () => {
+  addCardPin.type = addCardPin.type === 'password' ? 'text' : 'password';
+  btnToggleAddPin.textContent = addCardPin.type === 'password' ? '👁️' : '🙈';
+});
+
 btnSaveNew.addEventListener('click', async () => {
   const name = addName.value.trim();
-  const username = addUsername.value.trim();
-  const password = addPassword.value;
-  const uri = addUri.value.trim();
+  const folderId = addFolderSelect.value || null;
   const notes = addNotes.value.trim();
 
-  if (!name || !password) {
-    alert('Ingresa el nombre del sitio y la contraseña');
+  if (!name) {
+    alert('Ingresa el título o nombre del elemento');
     return;
+  }
+
+  let dataPayload: any = {};
+
+  if (activePopupAddType === 'login') {
+    const password = addPassword.value;
+    if (!password) {
+      alert('Ingresa la contraseña');
+      return;
+    }
+    const username = addUsername.value.trim();
+    const uri = addUri.value.trim();
+    dataPayload = {
+      username,
+      password,
+      uris: uri ? [uri] : [],
+      notes,
+    } as LoginData;
+  } else if (activePopupAddType === 'card') {
+    const number = addCardNumber.value.trim();
+    if (!number) {
+      alert('Ingresa el número de tarjeta');
+      return;
+    }
+    const cardholderName = addCardHolder.value.trim();
+    const exp = addCardExp.value.trim();
+    const [expMonth = '', expYear = ''] = exp.split('/');
+    const cvv = addCardCvv.value.trim();
+    const pin = addCardPin.value.trim();
+    dataPayload = {
+      cardholderName,
+      brand: 'other',
+      number,
+      expMonth,
+      expYear,
+      cvv,
+      pin,
+      notes: [addCardZip.value ? `ZIP: ${addCardZip.value}` : '', notes].filter(Boolean).join('\n'),
+    } as CardData;
+  } else if (activePopupAddType === 'note') {
+    const text = addNoteContent.value.trim();
+    dataPayload = {
+      text,
+    } as NoteData;
+  } else if (activePopupAddType === 'identity') {
+    const firstName = addIdFirst.value.trim();
+    const lastName = addIdLast.value.trim();
+    const email = addIdEmail.value.trim();
+    const phone = addIdPhone.value.trim();
+    const address = addIdAddress.value.trim();
+    dataPayload = {
+      firstName,
+      lastName,
+      email,
+      phone,
+      address,
+      notes,
+    } as IdentityData;
   }
 
   btnSaveNew.disabled = true;
@@ -737,14 +983,10 @@ btnSaveNew.addEventListener('click', async () => {
       type: 'SAVE_ITEM',
       item: {
         id: editingItemId || crypto.randomUUID(),
-        type: 'login',
+        type: activePopupAddType,
         name,
-        data: {
-          username,
-          password,
-          uris: uri ? [uri] : [],
-          notes,
-        },
+        folderId,
+        data: dataPayload,
       },
     });
 
@@ -760,6 +1002,37 @@ btnSaveNew.addEventListener('click', async () => {
     btnSaveNew.disabled = false;
     btnSaveNew.textContent = 'Guardar en Bóveda';
   }
+});
+
+// ================= MODAL ADD FOLDER POPUP (Image 5) =================
+function openPopupFolderModal() {
+  popupFolderNameInput.value = '';
+  popupModalFolder.style.display = 'flex';
+  setTimeout(() => popupFolderNameInput.focus(), 50);
+}
+
+btnClosePopupFolder.addEventListener('click', () => {
+  popupModalFolder.style.display = 'none';
+});
+
+btnSavePopupFolder.addEventListener('click', async () => {
+  const name = popupFolderNameInput.value.trim();
+  if (!name) {
+    alert('Ingresa el nombre de la carpeta');
+    return;
+  }
+
+  const newFolder: Folder = {
+    id: crypto.randomUUID(),
+    name,
+  };
+
+  popupFolders.push(newFolder);
+  await chrome.storage.local.set({ folders: popupFolders });
+  populatePopupFolderSelect();
+  popupModalFolder.style.display = 'none';
+  renderItems();
+  showToast(`✓ Carpeta "${name}" creada`);
 });
 
 init();

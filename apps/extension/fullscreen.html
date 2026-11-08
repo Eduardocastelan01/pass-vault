@@ -126,13 +126,51 @@
       <div id="fs-vault-view">
         <div class="fs-main-header">
           <h1 class="fs-main-title" id="fs-view-title">Vault</h1>
-          <button class="fs-btn-create" id="fs-btn-create-item">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            Create Item
-          </button>
+          <div class="fs-create-wrapper">
+            <button class="fs-btn-create" id="fs-btn-create-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Create Item
+            </button>
+
+            <!-- Menú Desplegable Crear Elemento (Image 2) -->
+            <div id="fs-create-dropdown" class="fs-create-dropdown" style="display: none;">
+              <div class="fs-create-menu-item" data-create-type="login">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="8" cy="15" r="4"></circle>
+                  <line x1="10.85" y1="12.15" x2="19" y2="4"></line>
+                  <line x1="18" y1="5" x2="20" y2="7"></line>
+                  <line x1="15" y1="8" x2="17" y2="10"></line>
+                </svg>
+                <span>Password</span>
+              </div>
+              <div class="fs-create-menu-item" data-create-type="note">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+                <span>Secure Note</span>
+              </div>
+              <div class="fs-create-menu-item" data-create-type="card">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                  <line x1="1" y1="10" x2="23" y2="10"></line>
+                </svg>
+                <span>Credit Card</span>
+              </div>
+              <div class="fs-create-menu-item" data-create-type="identity">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span>Contact Info</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Píldoras de Categorías (Image 2) -->
@@ -223,51 +261,164 @@
     </main>
   </div>
 
-  <!-- Modal: Crear Nuevo Elemento (Estilo NordPass) -->
+  <!-- Modal Especializado: Crear Elemento Fiel a NordPass (Image 3 y 4) -->
   <div id="fs-modal-create" class="fs-modal-overlay" style="display: none;">
-    <div class="fs-modal-card">
-      <div class="fs-modal-header">
-        <h2 id="fs-modal-title">Create Item</h2>
-        <button class="fs-modal-close" id="fs-btn-close-create">✕</button>
+    <div class="fs-modal-card" style="max-width: 580px;">
+      <div class="fs-modal-header" style="flex-direction: column; align-items: flex-start; gap: 4px; position: relative;">
+        <button class="fs-modal-close" id="fs-btn-close-create" style="position: absolute; top: 16px; right: 16px;">✕</button>
+        <div id="fs-create-badge-icon" class="fs-type-badge-icon login">
+          <svg id="fs-badge-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="8" cy="15" r="4"></circle>
+            <line x1="10.85" y1="12.15" x2="19" y2="4"></line>
+            <line x1="18" y1="5" x2="20" y2="7"></line>
+            <line x1="15" y1="8" x2="17" y2="10"></line>
+          </svg>
+        </div>
+        <h2 id="fs-modal-title" style="font-size: 20px; font-weight: 700;">Create Item</h2>
       </div>
+
       <div class="fs-modal-body">
+        <!-- Campo común: Título -->
         <div class="fs-form-group">
-          <label>Type</label>
-          <select id="fs-add-type" class="fs-input">
-            <option value="login">Password / Login</option>
-            <option value="note">Secure Note</option>
-            <option value="card">Credit Card</option>
+          <label>Title (required)</label>
+          <input type="text" id="fs-item-title" class="fs-input" placeholder="e.g. Google.com or Visa Card">
+        </div>
+
+        <!-- 1. CAMPOS EXCLUSIVOS DE CONTRASEÑA / LOGIN -->
+        <div id="fs-fields-login" class="fs-type-fields" style="display: flex; flex-direction: column; gap: 12px;">
+          <div class="fs-form-group">
+            <label>Email or Username</label>
+            <input type="text" id="fs-login-username" class="fs-input" placeholder="user@email.com">
+          </div>
+          <div class="fs-form-group">
+            <label>Password</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="password" id="fs-login-password" class="fs-input" style="flex: 1;" placeholder="••••••••••••">
+              <button type="button" id="fs-btn-toggle-login-pass" class="fs-btn-secondary" title="View password">👁️</button>
+              <button type="button" id="fs-btn-gen-login-pass" class="fs-btn-secondary" title="Generate password">⚡ Generate</button>
+            </div>
+            <div id="fs-login-strength" style="font-size: 11px; margin-top: 4px; display: none;"></div>
+          </div>
+          <div class="fs-form-group">
+            <label>Website Address (URL)</label>
+            <input type="text" id="fs-login-url" class="fs-input" placeholder="https://google.com">
+          </div>
+        </div>
+
+        <!-- 2. CAMPOS EXCLUSIVOS DE TARJETA DE CRÉDITO (Image 3 y 4) -->
+        <div id="fs-fields-card" class="fs-type-fields" style="display: none; flex-direction: column; gap: 12px;">
+          <div class="fs-form-section-title">Card Details</div>
+          <div class="fs-form-group">
+            <label>Cardholder Name</label>
+            <input type="text" id="fs-card-holder" class="fs-input" placeholder="John Doe">
+          </div>
+          <div class="fs-form-group">
+            <label>Card Number (required)</label>
+            <input type="text" id="fs-card-number" class="fs-input" placeholder="•••• •••• •••• ••••">
+          </div>
+          <div class="fs-form-row">
+            <div class="fs-form-group">
+              <label>Expiration Date</label>
+              <input type="text" id="fs-card-exp" class="fs-input" placeholder="MM/YY">
+            </div>
+            <div class="fs-form-group">
+              <label>CVV</label>
+              <div class="fs-input-container">
+                <input type="password" id="fs-card-cvv" placeholder="•••" maxlength="4">
+                <button type="button" id="fs-btn-toggle-cvv" class="fs-input-icon-btn" title="View CVV">👁️</button>
+              </div>
+            </div>
+          </div>
+          <div class="fs-form-row">
+            <div class="fs-form-group">
+              <label>Card PIN</label>
+              <div class="fs-input-container">
+                <input type="password" id="fs-card-pin" placeholder="••••" maxlength="6">
+                <button type="button" id="fs-btn-toggle-pin" class="fs-input-icon-btn" title="View PIN">👁️</button>
+              </div>
+            </div>
+            <div class="fs-form-group">
+              <label>ZIP or Postal Code</label>
+              <input type="text" id="fs-card-zip" class="fs-input" placeholder="ZIP Code">
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. CAMPOS EXCLUSIVOS DE NOTA SEGURA -->
+        <div id="fs-fields-note" class="fs-type-fields" style="display: none; flex-direction: column; gap: 12px;">
+          <div class="fs-form-group">
+            <label>Note Content (encrypted)</label>
+            <textarea id="fs-note-text" class="fs-input" rows="7" placeholder="Write your private note here..."></textarea>
+          </div>
+        </div>
+
+        <!-- 4. CAMPOS EXCLUSIVOS DE CONTACT INFO -->
+        <div id="fs-fields-identity" class="fs-type-fields" style="display: none; flex-direction: column; gap: 12px;">
+          <div class="fs-form-section-title">Personal Details</div>
+          <div class="fs-form-row">
+            <div class="fs-form-group">
+              <label>First Name</label>
+              <input type="text" id="fs-id-first" class="fs-input" placeholder="First name">
+            </div>
+            <div class="fs-form-group">
+              <label>Last Name</label>
+              <input type="text" id="fs-id-last" class="fs-input" placeholder="Last name">
+            </div>
+          </div>
+          <div class="fs-form-row">
+            <div class="fs-form-group">
+              <label>Email</label>
+              <input type="email" id="fs-id-email" class="fs-input" placeholder="email@address.com">
+            </div>
+            <div class="fs-form-group">
+              <label>Phone Number</label>
+              <input type="tel" id="fs-id-phone" class="fs-input" placeholder="+1 555 123 4567">
+            </div>
+          </div>
+          <div class="fs-form-group">
+            <label>Address</label>
+            <input type="text" id="fs-id-address" class="fs-input" placeholder="Street, City, State, Country">
+          </div>
+        </div>
+
+        <!-- SECCIÓN COMÚN: OTHER (Carpeta y Notas) (Image 4) -->
+        <div class="fs-form-section-title">Other</div>
+        <div class="fs-form-group">
+          <label>Folder</label>
+          <select id="fs-item-folder" class="fs-input">
+            <option value="">- No Folder -</option>
           </select>
         </div>
-        <div class="fs-form-group">
-          <label>Title / Website</label>
-          <input type="text" id="fs-add-name" class="fs-input" placeholder="e.g. Google.com or Netflix">
-        </div>
-        <div class="fs-form-group" id="fs-group-user">
-          <label>Username / Email</label>
-          <input type="text" id="fs-add-username" class="fs-input" placeholder="user@email.com">
-        </div>
-        <div class="fs-form-group" id="fs-group-pass">
-          <label>Password</label>
-          <div style="display: flex; gap: 8px;">
-            <input type="password" id="fs-add-password" class="fs-input" style="flex: 1;" placeholder="••••••••••••">
-            <button type="button" id="fs-btn-toggle-pass" class="fs-btn-secondary" title="View password">👁️</button>
-            <button type="button" id="fs-btn-gen-pass" class="fs-btn-secondary" title="Generate strong password">⚡ Generate</button>
-          </div>
-          <div id="fs-pass-strength" style="font-size: 11px; margin-top: 4px; display: none;"></div>
-        </div>
-        <div class="fs-form-group" id="fs-group-url">
-          <label>Website URL</label>
-          <input type="text" id="fs-add-uri" class="fs-input" placeholder="https://google.com">
-        </div>
-        <div class="fs-form-group">
-          <label>Notes</label>
-          <textarea id="fs-add-notes" class="fs-input" rows="3" placeholder="Additional private notes..."></textarea>
+        <div class="fs-form-group" id="fs-common-notes-group">
+          <label>Note</label>
+          <textarea id="fs-item-notes" class="fs-input" rows="3" placeholder="Additional private notes..."></textarea>
         </div>
       </div>
+
       <div class="fs-modal-footer">
         <button id="fs-btn-cancel-create" class="fs-btn-secondary">Cancel</button>
         <button id="fs-btn-save-create" class="fs-btn-primary">Save to Vault</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Crear Nueva Carpeta Estilo NordPass (Image 5) -->
+  <div id="fs-modal-folder" class="fs-modal-overlay" style="display: none;">
+    <div class="fs-modal-folder-card">
+      <div class="fs-modal-folder-header">
+        <h3>Add New Folder</h3>
+        <button class="fs-modal-close" id="fs-btn-close-folder">✕</button>
+      </div>
+      <div class="fs-modal-folder-body">
+        <div class="fs-folder-input-wrapper">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#38bdf8">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <input type="text" id="fs-folder-name-input" placeholder="Folder name (required)">
+        </div>
+      </div>
+      <div class="fs-modal-folder-footer">
+        <button id="fs-btn-save-folder" class="fs-btn-folder-save">Save</button>
       </div>
     </div>
   </div>
