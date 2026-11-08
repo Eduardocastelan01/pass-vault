@@ -2,14 +2,15 @@ package com.passvault.mobile.crypto
 
 import android.util.Base64
 import com.passvault.mobile.model.EncryptedPayload
+import org.bouncycastle.crypto.generators.Argon2BytesGenerator
+import org.bouncycastle.crypto.params.Argon2Parameters
 import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
 import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.Mac
 import javax.crypto.SecretKey
-import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.GCMParameterSpec
-import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 
 data class DerivedKeys(
@@ -19,35 +20,57 @@ data class DerivedKeys(
 
 /**
  * Motor Criptográfico Nativo Zero-Knowledge de PassVault para Android
- * Totalmente compatible con la extensión de navegador y servidor Fastify
+ * 100% Compatible a nivel de bits con @pass-vault/core (Argon2id + HKDF + AES-256-GCM)
  */
 object CryptoEngine {
-    private const val PBKDF2_ITERATIONS = 600000
-    private const val KEY_LENGTH_BITS = 256
     private const val GCM_IV_LENGTH_BYTES = 12
     private const val GCM_TAG_LENGTH_BITS = 128
 
     /**
-     * Deriva las claves a partir de la Contraseña Maestra y el Salt en Hexadecimal
+     * Deriva las claves a partir de la Contraseña Maestra y el Salt con Argon2id y HKDF
+     * Exactamente igual que la extensión de navegador
      */
     fun deriveKeys(masterPassword: String, saltHex: String): DerivedKeys {
         val saltBytes = hexToBytes(saltHex)
-        val spec = PBEKeySpec(
-            masterPassword.toCharArray(),
-            saltBytes,
-            PBKDF2_ITERATIONS,
-            KEY_LENGTH_BITS
-        )
-        val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
-        val masterKeyBytes = factory.generateSecret(spec).encoded
 
-        // Subclave 1: vaultKey para cifrado AES-256-GCM
-        val vaultKeyBytes = hkdfExpand(masterKeyBytes, "passvault-encryption-key".toByteArray(StandardCharsets.UTF_8), 32)
+        // 1. Derivación principal con Argon2id (RFC 9106)
+        // parallelism: 4, iterations: 3, memorySize: 65536 KB, hashLength: 32 bytes (256 bits)
+        val params = Argon2Parameters.Builder(Argon2Parameters.ARGON2_id)
+            .withVersion(Argon2Parameters.ARGON2_VERSION_13)
+            .withIterations(3)
+            .withMemoryAsKB(65536)
+            .withParallelism(4)
+            .withSalt(saltBytes)
+            .build()
+
+        val generator = Argon2BytesGenerator()
+        generator.init(params)
+        val masterKeyBytes = ByteArray(32)
+        generator.generateBytes(masterPassword.toByteArray(StandardCharsets.UTF_8), masterKeyBytes, 0, masterKeyBytes.size)
+
+        // 2. HKDF Extract: PRK = HMAC-SHA256(key = ByteArray(0), data = masterKeyBytes)
+        val prkMac = Mac.getInstance("HmacSHA256")
+        prkMac.init(SecretKeySpec(ByteArray(0), "HmacSHA256"))
+        val prk = prkMac.doFinal(masterKeyBytes)
+
+        // 3. HKDF Expand para vaultKey (AES-256-GCM) con info: "vault-encryption"
+        val vaultMac = Mac.getInstance("HmacSHA256")
+        vaultMac.init(SecretKeySpec(prk, "HmacSHA256"))
+        vaultMac.update("vault-encryption".toByteArray(StandardCharsets.UTF_8))
+        vaultMac.update(0x01.toByte())
+        val vaultKeyBytes = vaultMac.doFinal()
         val vaultKey = SecretKeySpec(vaultKeyBytes, "AES")
 
-        // Subclave 2: authHash que se envía al servidor para autenticar
-        val authHashBytes = hkdfExpand(masterKeyBytes, "passvault-authentication-hash".toByteArray(StandardCharsets.UTF_8), 32)
-        val authHash = bytesToHex(authHashBytes)
+        // 4. HKDF Expand para authKeyBits con info: "server-auth"
+        val authMac = Mac.getInstance("HmacSHA256")
+        authMac.init(SecretKeySpec(prk, "HmacSHA256"))
+        authMac.update("server-auth".toByteArray(StandardCharsets.UTF_8))
+        authMac.update(0x01.toByte())
+        val authKeyBits = authMac.doFinal()
+
+        // 5. Hash SHA-256 final para authHash
+        val md = MessageDigest.getInstance("SHA-256")
+        val authHash = bytesToHex(md.digest(authKeyBits))
 
         return DerivedKeys(vaultKey, authHash)
     }
@@ -98,15 +121,6 @@ object CryptoEngine {
 
         val decryptedBytes = cipher.doFinal(combined)
         return String(decryptedBytes, StandardCharsets.UTF_8)
-    }
-
-    private fun hkdfExpand(prk: ByteArray, info: ByteArray, length: Int): ByteArray {
-        val mac = Mac.getInstance("HmacSHA256")
-        mac.init(SecretKeySpec(prk, "HmacSHA256"))
-        mac.update(info)
-        mac.update(0x01.toByte())
-        val output = mac.doFinal()
-        return output.copyOf(length)
     }
 
     fun hexToBytes(hex: String): ByteArray {

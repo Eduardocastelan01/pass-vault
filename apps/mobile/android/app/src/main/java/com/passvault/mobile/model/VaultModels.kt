@@ -21,9 +21,10 @@ data class EncryptedVaultItem(
     val name: String,
     val favorite: Boolean = false,
     val folderId: String? = null,
-    val createdAt: String,
-    val updatedAt: String,
+    val createdAt: String = "",
+    val updatedAt: String = "",
     val version: Int = 1,
+    val deleted: Boolean = false,
     val encryptedPayload: EncryptedPayload
 )
 

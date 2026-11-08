@@ -2,6 +2,9 @@ package com.passvault.mobile.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.passvault.mobile.crypto.CryptoEngine
 import com.passvault.mobile.model.*
 import kotlinx.coroutines.Dispatchers
@@ -34,10 +37,10 @@ class VaultRepository(private val context: Context) {
     var vaultKey: SecretKey? = null
         private set
 
-    var decryptedItems: List<DecryptedVaultItem> = emptyList()
+    var decryptedItems: List<DecryptedVaultItem> by mutableStateOf(emptyList())
         private set
 
-    var folders: List<Folder> = emptyList()
+    var folders: List<Folder> by mutableStateOf(emptyList())
         private set
 
     var serverUrl: String
@@ -134,9 +137,13 @@ class VaultRepository(private val context: Context) {
                     token = loginJson.getString("token")
                     userToken = token
                 }
+            } else if (loginRes.code == 401) {
+                return@withContext Result.failure(Exception("Contraseña maestra incorrecta"))
+            } else {
+                return@withContext Result.failure(Exception("Error en servidor (${loginRes.code})"))
             }
         } catch (e: Exception) {
-            // Modo Offline
+            // Modo Offline: si el servidor está apagado
         }
 
         isUnlocked = true
@@ -234,8 +241,10 @@ class VaultRepository(private val context: Context) {
             val body = res.body?.string() ?: return Result.failure(Exception("Respuesta vacía"))
             val syncResponse = json.decodeFromString<SyncResponse>(body)
 
+            val activeItems = syncResponse.items.filter { !it.deleted }
+
             // Guardar copia local cifrada para acceso offline en el S25 Ultra
-            prefs.edit().putString("cached_vault", json.encodeToString(syncResponse.items)).apply()
+            prefs.edit().putString("cached_vault", json.encodeToString(activeItems)).apply()
 
             // Descifrar en memoria
             decryptLocalCache()

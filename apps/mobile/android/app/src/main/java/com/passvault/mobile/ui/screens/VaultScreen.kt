@@ -2,6 +2,7 @@ package com.passvault.mobile.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -41,9 +42,12 @@ fun VaultScreen(
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("all") }
     var selectedFolderId by remember { mutableStateOf<String?>(null) }
+    var showVaultMenu by remember { mutableStateOf(false) }
     var showCreateOptionsSheet by remember { mutableStateOf(false) }
     var showAddFolderDialog by remember { mutableStateOf(false) }
     var newFolderName by remember { mutableStateOf("") }
+
+    val currentVaultTitle = if (selectedFolderId == null) "Vault" else (folders.find { it.id == selectedFolderId }?.name ?: "Vault")
 
     val clipboardManager = LocalClipboardManager.current
     var toastMessage by remember { mutableStateOf<String?>(null) }
@@ -104,24 +108,113 @@ fun VaultScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .background(Color(0xFF161D2A), RoundedCornerShape(10.dp))
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = "Vault",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp
-                        )
-                        Icon(
-                            imageVector = Icons.Default.UnfoldMore,
-                            contentDescription = "Selector",
-                            tint = Color.White,
-                            modifier = Modifier.size(16.dp)
-                        )
+                    Box {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .background(Color(0xFF161D2A), RoundedCornerShape(10.dp))
+                                .clickable { showVaultMenu = true }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = currentVaultTitle,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Default.UnfoldMore,
+                                contentDescription = "Selector",
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = showVaultMenu,
+                            onDismissRequest = { showVaultMenu = false },
+                            modifier = Modifier
+                                .background(Color(0xFF161D2A))
+                                .border(1.dp, Color(0xFF232E42), RoundedCornerShape(8.dp))
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text("🔒", fontSize = 16.sp)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            "All Items (Toda la Bóveda)",
+                                            color = if (selectedFolderId == null) NordBlue else Color.White,
+                                            fontWeight = if (selectedFolderId == null) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    selectedFolderId = null
+                                    showVaultMenu = false
+                                }
+                            )
+
+                            if (folders.isNotEmpty()) {
+                                HorizontalDivider(color = Color(0xFF232E42), modifier = Modifier.padding(vertical = 4.dp))
+                                Text(
+                                    text = "FOLDERS",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF94A3B8),
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                                )
+
+                                folders.forEach { folder ->
+                                    val isCurrent = selectedFolderId == folder.id
+                                    val count = items.count { it.folderId == folder.id }
+                                    DropdownMenuItem(
+                                        text = {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Text("📁", fontSize = 15.sp)
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Text(
+                                                        folder.name,
+                                                        color = if (isCurrent) NordBlue else Color.White,
+                                                        fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal
+                                                    )
+                                                }
+                                                Text(
+                                                    "($count)",
+                                                    fontSize = 12.sp,
+                                                    color = Color(0xFF94A3B8)
+                                                )
+                                            }
+                                        },
+                                        onClick = {
+                                            selectedFolderId = folder.id
+                                            showVaultMenu = false
+                                        }
+                                    )
+                                }
+                            }
+
+                            HorizontalDivider(color = Color(0xFF232E42), modifier = Modifier.padding(vertical = 4.dp))
+                            DropdownMenuItem(
+                                text = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(imageVector = Icons.Default.CreateNewFolder, contentDescription = null, tint = NordBlue, modifier = Modifier.size(18.dp))
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("New Folder...", color = NordBlue, fontWeight = FontWeight.SemiBold)
+                                    }
+                                },
+                                onClick = {
+                                    showVaultMenu = false
+                                    showAddFolderDialog = true
+                                }
+                            )
+                        }
                     }
 
                     Row(
