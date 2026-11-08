@@ -38,16 +38,28 @@ fun SettingsScreen(
 ) {
     var tempUrl by remember { mutableStateOf(serverUrl) }
 
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color.White,
+        unfocusedTextColor = Color.White,
+        focusedContainerColor = Color(0xFF0F1520),
+        unfocusedContainerColor = Color(0xFF0F1520),
+        focusedBorderColor = Color(0xFF0284C7),
+        unfocusedBorderColor = Color(0xFF2D3B50),
+        focusedLabelColor = Color(0xFF0284C7),
+        unfocusedLabelColor = Color(0xFF94A3B8),
+        cursorColor = Color(0xFF0284C7)
+    )
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings", fontWeight = FontWeight.Bold, fontSize = 18.sp) },
+                title = { Text("Settings", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Volver")
+                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0C0F17))
             )
         }
     ) { padding ->
@@ -55,7 +67,7 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(Color.White)
+                .background(Color(0xFF0C0F17))
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -63,7 +75,7 @@ fun SettingsScreen(
             // Tarjeta de Usuario (Image 4)
             Card(
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = NordDark),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF161D2A)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -88,11 +100,11 @@ fun SettingsScreen(
             }
 
             // Sección Seguridad
-            Text("Seguridad y Biometría", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text("Seguridad y Biometría", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
 
             Card(
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF161D2A)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -103,10 +115,10 @@ fun SettingsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Icon(imageVector = Icons.Default.Fingerprint, contentDescription = null, tint = Color(0xFF0284C7))
+                        Icon(imageVector = Icons.Default.Fingerprint, contentDescription = null, tint = Color(0xFF38BDF8))
                         Column {
-                            Text("Sensor Ultrasónico S25 Ultra", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                            Text("Desbloquear con huella dactilar", fontSize = 12.sp, color = NordTextMuted)
+                            Text("Sensor Ultrasónico S25 Ultra", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color.White)
+                            Text("Desbloquear con huella dactilar", fontSize = 12.sp, color = Color(0xFF94A3B8))
                         }
                     }
 
@@ -118,18 +130,18 @@ fun SettingsScreen(
             }
 
             // Sección Sincronización
-            Text("Servidor de Sincronización", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text("Servidor de Sincronización", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
 
             Card(
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF161D2A)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
                         "URL del Servidor (Laptop o Nube)",
                         fontSize = 12.sp,
-                        color = NordTextMuted
+                        color = Color(0xFF94A3B8)
                     )
                     OutlinedTextField(
                         value = tempUrl,
@@ -138,18 +150,19 @@ fun SettingsScreen(
                             onUpdateServerUrl(it)
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        colors = fieldColors
                     )
 
                     Button(
                         onClick = onSyncNow,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = NordDark)
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
                     ) {
-                        Icon(imageVector = Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Icon(imageVector = Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Sincronizar Bóveda Ahora")
+                        Text("Sincronizar Bóveda Ahora", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -162,11 +175,13 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(10.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2D3B50)),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
             ) {
-                Icon(imageVector = Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(imageVector = Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Bloquear Bóveda", fontWeight = FontWeight.SemiBold)
+                Text("Bloquear Bóveda", fontWeight = FontWeight.SemiBold, color = Color.White)
             }
 
             Button(
@@ -175,9 +190,9 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .height(48.dp),
                 shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = NordRed)
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
             ) {
-                Text("Cerrar Sesión (Log Out)", fontWeight = FontWeight.Bold)
+                Text("Cerrar Sesión (Log Out)", fontWeight = FontWeight.Bold, color = Color.White)
             }
         }
     }

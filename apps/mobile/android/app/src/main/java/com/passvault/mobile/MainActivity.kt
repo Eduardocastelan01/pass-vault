@@ -83,14 +83,18 @@ fun MainAppNav(
                     }
                 },
                 onUnlockWithBiometrics = {
-                    if (biometricHelper.isBiometricAvailable()) {
-                        onAuthenticateBiometrics {
-                            // Si ya hay salt en caché, desbloquear usando la sesión guardada
-                            repository.decryptLocalCache()
-                            currentScreen = Screen.VAULT
-                        }
-                    } else {
+                    if (!biometricHelper.isBiometricAvailable()) {
                         errorMessage = "Sensor biométrico no disponible en este dispositivo."
+                    } else if (!repository.canUnlockWithBiometrics()) {
+                        errorMessage = "Desbloquea con tu contraseña maestra la primera vez para activar la huella."
+                    } else {
+                        onAuthenticateBiometrics {
+                            if (repository.unlockWithBiometrics()) {
+                                currentScreen = Screen.VAULT
+                            } else {
+                                errorMessage = "No se pudo descifrar la bóveda con los datos biométricos guardados."
+                            }
+                        }
                     }
                 },
                 onSaveServerConfig = { url, email ->

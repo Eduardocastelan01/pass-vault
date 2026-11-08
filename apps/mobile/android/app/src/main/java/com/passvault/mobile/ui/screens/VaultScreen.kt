@@ -1,5 +1,6 @@
 package com.passvault.mobile.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -75,12 +76,25 @@ fun VaultScreen(
         matchesCategory && matchesFolder && matchesSearch
     }
 
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color.White,
+        unfocusedTextColor = Color.White,
+        focusedContainerColor = Color(0xFF161D2A),
+        unfocusedContainerColor = Color(0xFF161D2A),
+        focusedBorderColor = NordBlue,
+        unfocusedBorderColor = Color(0xFF2D3B50),
+        focusedLabelColor = NordBlue,
+        unfocusedLabelColor = Color(0xFF94A3B8),
+        cursorColor = NordBlue
+    )
+
     Scaffold(
+        containerColor = Color(0xFF0C0F17),
         topBar = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(NordDark)
+                    .background(Color(0xFF0C0F17))
                     .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 12.dp)
             ) {
                 // Header estilo NordPass
@@ -92,7 +106,7 @@ fun VaultScreen(
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .background(Color(0xFF1A2230), RoundedCornerShape(10.dp))
+                            .background(Color(0xFF161D2A), RoundedCornerShape(10.dp))
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Text(
@@ -159,8 +173,8 @@ fun VaultScreen(
                         .height(48.dp),
                     shape = RoundedCornerShape(10.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color(0xFF1A2230),
-                        unfocusedContainerColor = Color(0xFF1A2230),
+                        focusedContainerColor = Color(0xFF161D2A),
+                        unfocusedContainerColor = Color(0xFF161D2A),
                         focusedBorderColor = Color(0xFF2D3B50),
                         unfocusedBorderColor = Color(0xFF2D3B50),
                         focusedTextColor = Color.White,
@@ -173,7 +187,7 @@ fun VaultScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showCreateOptionsSheet = true },
-                containerColor = NordDark,
+                containerColor = NordBlue,
                 contentColor = Color.White,
                 shape = CircleShape
             ) {
@@ -182,26 +196,27 @@ fun VaultScreen(
         },
         bottomBar = {
             NavigationBar(
-                containerColor = Color.White,
+                containerColor = Color(0xFF161D2A),
+                contentColor = Color.White,
                 tonalElevation = 8.dp
             ) {
                 NavigationBarItem(
                     selected = true,
                     onClick = { },
-                    icon = { Icon(Icons.Default.Lock, contentDescription = "Vault") },
-                    label = { Text("Vault") }
+                    icon = { Icon(Icons.Default.Lock, contentDescription = "Vault", tint = Color.White) },
+                    label = { Text("Vault", color = Color.White) }
                 )
                 NavigationBarItem(
                     selected = false,
                     onClick = { showAddFolderDialog = true },
-                    icon = { Icon(Icons.Default.CreateNewFolder, contentDescription = "Folders") },
-                    label = { Text("New Folder") }
+                    icon = { Icon(Icons.Default.CreateNewFolder, contentDescription = "Folders", tint = Color(0xFF94A3B8)) },
+                    label = { Text("New Folder", color = Color(0xFF94A3B8)) }
                 )
                 NavigationBarItem(
                     selected = false,
                     onClick = onOpenSettings,
-                    icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                    label = { Text("Settings") }
+                    icon = { Icon(Icons.Default.Settings, contentDescription = "Settings", tint = Color(0xFF94A3B8)) },
+                    label = { Text("Settings", color = Color(0xFF94A3B8)) }
                 )
             }
         }
@@ -210,7 +225,7 @@ fun VaultScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(Color.White)
+                .background(Color(0xFF0C0F17))
         ) {
             // Píldoras de Categoría
             LazyRow(
@@ -224,11 +239,12 @@ fun VaultScreen(
                     Surface(
                         modifier = Modifier.clickable { selectedCategory = catId },
                         shape = RoundedCornerShape(20.dp),
-                        color = if (isSelected) NordDark else Color(0xFFF1F5F9),
-                        contentColor = if (isSelected) Color.White else NordTextDark
+                        color = if (isSelected) NordBlue else Color(0xFF161D2A),
+                        border = if (!isSelected) BorderStroke(1.dp, Color(0xFF232E42)) else null
                     ) {
                         Text(
                             text = catLabel,
+                            color = if (isSelected) Color.White else Color(0xFF94A3B8),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp)
@@ -246,8 +262,8 @@ fun VaultScreen(
             ) {
                 Text(
                     text = "${filteredItems.size} items",
-                    fontSize = 11.sp,
-                    color = NordTextMuted,
+                    fontSize = 12.sp,
+                    color = Color(0xFF94A3B8),
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -262,14 +278,15 @@ fun VaultScreen(
                 ) {
                     Text(
                         text = if (searchQuery.isNotBlank()) "No se encontraron resultados" else "Tu bóveda está vacía.\nPresiona '+' para agregar un elemento.",
-                        color = NordTextMuted,
+                        color = Color(0xFF94A3B8),
                         fontSize = 14.sp
                     )
                 }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 80.dp)
+                    contentPadding = PaddingValues(bottom = 80.dp, start = 16.dp, end = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(filteredItems) { item ->
                         ItemRow(
@@ -286,7 +303,6 @@ fun VaultScreen(
                                 toastMessage = "Secreto copiado al portapapeles"
                             }
                         )
-                        HorizontalDivider(color = NordBorder.copy(alpha = 0.5f), thickness = 0.5.dp)
                     }
                 }
             }
@@ -297,15 +313,15 @@ fun VaultScreen(
     if (showCreateOptionsSheet) {
         ModalBottomSheet(
             onDismissRequest = { showCreateOptionsSheet = false },
-            containerColor = Color.White
+            containerColor = Color(0xFF161D2A)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text("Create Item", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text("Create Item", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 Spacer(modifier = Modifier.height(4.dp))
 
                 CreateOptionRow("🔑 Password", "Credencial de sitio web o app") {
@@ -324,6 +340,7 @@ fun VaultScreen(
                     showCreateOptionsSheet = false
                     onOpenCreate("identity")
                 }
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
@@ -332,21 +349,17 @@ fun VaultScreen(
     if (showAddFolderDialog) {
         AlertDialog(
             onDismissRequest = { showAddFolderDialog = false },
+            containerColor = Color(0xFF161D2A),
+            titleContentColor = Color.White,
             title = { Text("Add New Folder", fontWeight = FontWeight.Bold, fontSize = 18.sp) },
             text = {
                 OutlinedTextField(
                     value = newFolderName,
                     onValueChange = { newFolderName = it },
-                    placeholder = { Text("Folder name (required)") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Folder,
-                            contentDescription = "Folder",
-                            tint = Color(0xFF38BDF8)
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp)
+                    placeholder = { Text("Folder name (required)", color = Color(0xFF94A3B8)) },
+                    colors = fieldColors,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
                 )
             },
             confirmButton = {
@@ -358,15 +371,15 @@ fun VaultScreen(
                             showAddFolderDialog = false
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = NordDark),
+                    colors = ButtonDefaults.buttonColors(containerColor = NordBlue),
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text("Save")
+                    Text("Save", color = Color.White)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showAddFolderDialog = false }) {
-                    Text("Cancel")
+                    Text("Cancel", color = Color(0xFF94A3B8))
                 }
             }
         )
@@ -380,75 +393,83 @@ fun ItemRow(
     onCopyUser: () -> Unit,
     onCopyPass: () -> Unit
 ) {
-    Row(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .clickable { onClick() },
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF161D2A)),
+        border = BorderStroke(1.dp, Color(0xFF232E42))
     ) {
-        // Badge de Icono
-        val (bgColor, icon) = when (item.type) {
-            "card" -> NordPurple to Icons.Default.CreditCard
-            "note" -> NordAmber to Icons.Default.Description
-            "identity" -> NordGreen to Icons.Default.Person
-            else -> NordBlue to Icons.Default.Key
-        }
-
-        Box(
+        Row(
             modifier = Modifier
-                .size(38.dp)
-                .background(bgColor.copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = bgColor,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = item.name,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp,
-                color = NordTextDark
-            )
-            val sub = when (item.type) {
-                "card" -> "•••• ${item.cardData?.number?.takeLast(4) ?: "Card"}"
-                "note" -> item.noteData?.text?.take(28) ?: "Nota segura"
-                "identity" -> item.identityData?.email ?: "Contacto"
-                else -> item.loginData?.username ?: "Sin usuario"
+            // Badge de Icono
+            val (bgColor, icon) = when (item.type) {
+                "card" -> NordPurple to Icons.Default.CreditCard
+                "note" -> NordAmber to Icons.Default.Description
+                "identity" -> NordGreen to Icons.Default.Person
+                else -> NordBlue to Icons.Default.Key
             }
-            Text(
-                text = sub,
-                fontSize = 12.sp,
-                color = NordTextMuted
-            )
-        }
 
-        // Botones de acción rápida
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            IconButton(onClick = onCopyUser, modifier = Modifier.size(32.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .background(bgColor.copy(alpha = 0.2f), RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
                 Icon(
-                    imageVector = Icons.Default.ContentCopy,
-                    contentDescription = "Copiar",
-                    tint = NordTextMuted,
-                    modifier = Modifier.size(16.dp)
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = bgColor,
+                    modifier = Modifier.size(20.dp)
                 )
             }
-            if (item.type == "login" || item.type == "card") {
-                IconButton(onClick = onCopyPass, modifier = Modifier.size(32.dp)) {
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.name,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                    color = Color.White
+                )
+                val sub = when (item.type) {
+                    "card" -> "•••• ${item.cardData?.number?.takeLast(4) ?: "Card"}"
+                    "note" -> item.noteData?.text?.take(28) ?: "Nota segura"
+                    "identity" -> item.identityData?.email ?: "Contacto"
+                    else -> item.loginData?.username ?: "Sin usuario"
+                }
+                Text(
+                    text = sub,
+                    fontSize = 12.sp,
+                    color = Color(0xFF94A3B8)
+                )
+            }
+
+            // Botones de acción rápida
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                IconButton(onClick = onCopyUser, modifier = Modifier.size(34.dp)) {
                     Icon(
-                        imageVector = Icons.Default.Key,
-                        contentDescription = "Copiar secreto",
-                        tint = NordTextMuted,
-                        modifier = Modifier.size(16.dp)
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = "Copiar",
+                        tint = Color(0xFF94A3B8),
+                        modifier = Modifier.size(18.dp)
                     )
+                }
+                if (item.type == "login" || item.type == "card") {
+                    IconButton(onClick = onCopyPass, modifier = Modifier.size(34.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.Key,
+                            contentDescription = "Copiar secreto",
+                            tint = Color(0xFF94A3B8),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
         }
@@ -462,12 +483,12 @@ fun CreateOptionRow(title: String, subtitle: String, onClick: () -> Unit) {
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(10.dp),
-        color = Color(0xFFF8FAFC)
+        color = Color(0xFF0F1520),
+        border = BorderStroke(1.dp, Color(0xFF232E42))
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
-            Text(text = title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-            Text(text = subtitle, fontSize = 12.sp, color = NordTextMuted)
+            Text(text = title, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
+            Text(text = subtitle, fontSize = 12.sp, color = Color(0xFF94A3B8))
         }
     }
 }
-

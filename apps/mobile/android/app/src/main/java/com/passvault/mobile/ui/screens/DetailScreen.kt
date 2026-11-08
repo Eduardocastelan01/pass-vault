@@ -39,18 +39,18 @@ fun DetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(item.name, fontWeight = FontWeight.Bold, fontSize = 18.sp) },
+                title = { Text(item.name, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Volver")
+                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color.White)
                     }
                 },
                 actions = {
                     IconButton(onClick = { showMoveDialog = true }) {
-                        Icon(imageVector = Icons.Default.DriveFileMove, contentDescription = "Mover de carpeta")
+                        Icon(imageVector = Icons.Default.DriveFileMove, contentDescription = "Mover de carpeta", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0C0F17))
             )
         }
     ) { padding ->
@@ -58,7 +58,7 @@ fun DetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(Color.White)
+                .background(Color(0xFF0C0F17))
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -85,20 +85,21 @@ fun DetailScreen(
                 text = item.name,
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp,
+                color = Color.White,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
 
             // Carpeta asignada
             Surface(
                 shape = RoundedCornerShape(20.dp),
-                color = Color(0xFFF1F5F9),
+                color = Color(0xFF161D2A),
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             ) {
                 Text(
                     text = "📁 ${folderObj?.name ?: "Sin Carpeta"}",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
-                    color = NordTextMuted,
+                    color = Color(0xFF94A3B8),
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                 )
             }
@@ -114,11 +115,11 @@ fun DetailScreen(
 
                 Card(
                     shape = RoundedCornerShape(10.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF161D2A)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
-                        Text("Password", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = NordTextMuted)
+                        Text("Password", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF94A3B8))
                         Spacer(modifier = Modifier.height(4.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -128,19 +129,21 @@ fun DetailScreen(
                             Text(
                                 text = if (isPassVisible) data?.password ?: "" else "••••••••••••",
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
+                                fontSize = 14.sp,
+                                color = Color.White
                             )
                             Row {
                                 IconButton(onClick = { isPassVisible = !isPassVisible }) {
                                     Icon(
                                         imageVector = if (isPassVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                        contentDescription = "Ver"
+                                        contentDescription = "Ver",
+                                        tint = Color(0xFF94A3B8)
                                     )
                                 }
                                 IconButton(onClick = {
                                     clipboardManager.setText(AnnotatedString(data?.password ?: ""))
                                 }) {
-                                    Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "Copiar")
+                                    Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "Copiar", tint = Color(0xFF94A3B8))
                                 }
                             }
                         }
@@ -150,15 +153,15 @@ fun DetailScreen(
                 // Password Health badge estilo NordPass
                 Surface(
                     shape = RoundedCornerShape(20.dp),
-                    color = Color(0xFFECFDF5)
+                    color = Color(0xFF064E3B)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = NordGreen, modifier = Modifier.size(14.dp))
-                        Text("Strong Password", color = NordGreen, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF34D399), modifier = Modifier.size(14.dp))
+                        Text("Strong Password", color = Color(0xFF34D399), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                 }
 
@@ -207,6 +210,9 @@ fun DetailScreen(
     if (showMoveDialog) {
         AlertDialog(
             onDismissRequest = { showMoveDialog = false },
+            containerColor = Color(0xFF161D2A),
+            titleContentColor = Color.White,
+            textContentColor = Color(0xFF94A3B8),
             title = { Text("Mover a Carpeta") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -217,7 +223,7 @@ fun DetailScreen(
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("- Sin Carpeta (Raíz) -", modifier = Modifier.fillMaxWidth())
+                        Text("- Sin Carpeta (Raíz) -", color = Color.White, modifier = Modifier.fillMaxWidth())
                     }
                     folders.forEach { f ->
                         TextButton(
@@ -227,7 +233,7 @@ fun DetailScreen(
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("📁 ${f.name}", modifier = Modifier.fillMaxWidth())
+                            Text("📁 ${f.name}", color = Color.White, modifier = Modifier.fillMaxWidth())
                         }
                     }
                 }
@@ -235,7 +241,7 @@ fun DetailScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showMoveDialog = false }) {
-                    Text("Cancelar")
+                    Text("Cancelar", color = Color(0xFF94A3B8))
                 }
             }
         )
@@ -246,11 +252,11 @@ fun DetailScreen(
 fun DetailFieldGroup(label: String, value: String, onCopy: (() -> Unit)? = null) {
     Card(
         shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF161D2A)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
-            Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = NordTextMuted)
+            Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF94A3B8))
             Spacer(modifier = Modifier.height(4.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -261,11 +267,11 @@ fun DetailFieldGroup(label: String, value: String, onCopy: (() -> Unit)? = null)
                     text = value.ifBlank { "(Sin información)" },
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp,
-                    color = NordTextDark
+                    color = Color.White
                 )
                 if (onCopy != null) {
                     IconButton(onClick = onCopy, modifier = Modifier.size(28.dp)) {
-                        Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "Copiar", modifier = Modifier.size(16.dp))
+                        Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "Copiar", tint = Color(0xFF94A3B8), modifier = Modifier.size(16.dp))
                     }
                 }
             }

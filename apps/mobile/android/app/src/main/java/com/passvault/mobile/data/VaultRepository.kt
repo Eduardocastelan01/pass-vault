@@ -41,7 +41,7 @@ class VaultRepository(private val context: Context) {
         private set
 
     var serverUrl: String
-        get() = prefs.getString("server_url", "http://192.168.1.100:3000") ?: "http://192.168.1.100:3000"
+        get() = prefs.getString("server_url", "http://192.168.1.126:3000") ?: "http://192.168.1.126:3000"
         set(value) = prefs.edit().putString("server_url", value).apply()
 
     var userEmail: String?
@@ -140,6 +140,12 @@ class VaultRepository(private val context: Context) {
         }
 
         isUnlocked = true
+
+        // Guardar clave para acceso biométrico seguro en este dispositivo
+        if (isBiometricEnabled && vaultKey != null) {
+            val b64Key = android.util.Base64.encodeToString(vaultKey!!.encoded, android.util.Base64.NO_WRAP)
+            prefs.edit().putString("biometric_vault_key", b64Key).apply()
+        }
 
         // 4. Cargar y descifrar elementos de la caché local o sincronizar
         if (token != null) {
@@ -347,6 +353,34 @@ class VaultRepository(private val context: Context) {
                 note = item.noteData,
                 identity = item.identityData
             )
+        }
+    }
+
+    fun canUnlockWithBiometrics(): Boolean {
+        return isBiometricEnabled && prefs.getString("biometric_vault_key", null) != null && !userEmail.isNullOrBlank()
+    }
+
+    fun unlockWithBiometrics(): Boolean {
+        if (!isBiometricEnabled) return false
+        val b64Key = prefs.getString("biometric_vault_key", null) ?: return false
+        return try {
+            val keyBytes = android.util.Base64.decode(b64Key, android.util.Base64.NO_WRAP)
+            vaultKey = javax.crypto.spec.SecretKeySpec(keyBytes, "AES")
+            isUnlocked = true
+            decryptLocalCache()
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    suspend fun testServerConnection(url: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val req = Request.Builder().url("$url/health").get().build()
+            val res = httpClient.newCall(req).execute()
+            res.isSuccessful
+        } catch (e: Exception) {
+            false
         }
     }
 

@@ -79,16 +79,28 @@ fun CreateItemScreen(
         else -> "Create Password"
     }
 
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color.White,
+        unfocusedTextColor = Color.White,
+        focusedContainerColor = Color(0xFF161D2A),
+        unfocusedContainerColor = Color(0xFF161D2A),
+        focusedBorderColor = NordBlue,
+        unfocusedBorderColor = Color(0xFF2D3B50),
+        focusedLabelColor = NordBlue,
+        unfocusedLabelColor = Color(0xFF94A3B8),
+        cursorColor = NordBlue
+    )
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(screenTitle, fontWeight = FontWeight.Bold, fontSize = 18.sp) },
+                title = { Text(screenTitle, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Volver")
+                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0C0F17))
             )
         }
     ) { padding ->
@@ -96,7 +108,7 @@ fun CreateItemScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(Color.White)
+                .background(Color(0xFF0C0F17))
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -106,7 +118,8 @@ fun CreateItemScreen(
                 onValueChange = { title = it },
                 label = { Text("Title (required)") },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(10.dp),
+                colors = fieldColors
             )
 
             // 1. CAMPOS LOGIN
@@ -116,7 +129,8 @@ fun CreateItemScreen(
                     onValueChange = { loginUser = it },
                     label = { Text("Email or Username") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(10.dp),
+                    colors = fieldColors
                 )
 
                 OutlinedTextField(
@@ -129,19 +143,21 @@ fun CreateItemScreen(
                             IconButton(onClick = { isLoginPassVisible = !isLoginPassVisible }) {
                                 Icon(
                                     imageVector = if (isLoginPassVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = "Ver"
+                                    contentDescription = "Ver",
+                                    tint = Color(0xFF94A3B8)
                                 )
                             }
                             IconButton(onClick = {
                                 loginPass = (1..20).map { (('a'..'z') + ('A'..'Z') + ('0'..'9') + "!@#$").random() }.joinToString("")
                                 isLoginPassVisible = true
                             }) {
-                                Icon(imageVector = Icons.Default.Bolt, contentDescription = "Generar", tint = NordBlue)
+                                Icon(imageVector = Icons.Default.Bolt, contentDescription = "Generar", tint = Color(0xFF38BDF8))
                             }
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(10.dp),
+                    colors = fieldColors
                 )
 
                 OutlinedTextField(
@@ -149,20 +165,22 @@ fun CreateItemScreen(
                     onValueChange = { loginUrl = it },
                     label = { Text("Website Address (URL)") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(10.dp),
+                    colors = fieldColors
                 )
             }
 
             // 2. CAMPOS CREDIT CARD (Image 3 y 4)
             if (type == "card") {
-                Text("Card Details", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text("Card Details", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
 
                 OutlinedTextField(
                     value = cardHolder,
                     onValueChange = { cardHolder = it },
                     label = { Text("Cardholder Name") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(10.dp),
+                    colors = fieldColors
                 )
 
                 OutlinedTextField(
@@ -170,16 +188,18 @@ fun CreateItemScreen(
                     onValueChange = { cardNumber = it },
                     label = { Text("Card Number (required)") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(10.dp),
+                    colors = fieldColors
                 )
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
                         value = cardExp,
                         onValueChange = { cardExp = it },
-                        label = { Text("Expiration Date (MM/YY)") },
+                        label = { Text("Exp (MM/YY)") },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        colors = fieldColors
                     )
                     OutlinedTextField(
                         value = cardCvv,
@@ -188,11 +208,16 @@ fun CreateItemScreen(
                         visualTransformation = if (isCvvVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         trailingIcon = {
                             IconButton(onClick = { isCvvVisible = !isCvvVisible }) {
-                                Icon(imageVector = if (isCvvVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = "Ver")
+                                Icon(
+                                    imageVector = if (isCvvVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = "Ver",
+                                    tint = Color(0xFF94A3B8)
+                                )
                             }
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        colors = fieldColors
                     )
                 }
 
@@ -204,18 +229,24 @@ fun CreateItemScreen(
                         visualTransformation = if (isPinVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         trailingIcon = {
                             IconButton(onClick = { isPinVisible = !isPinVisible }) {
-                                Icon(imageVector = if (isPinVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = "Ver")
+                                Icon(
+                                    imageVector = if (isPinVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = "Ver",
+                                    tint = Color(0xFF94A3B8)
+                                )
                             }
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        colors = fieldColors
                     )
                     OutlinedTextField(
                         value = cardZip,
                         onValueChange = { cardZip = it },
                         label = { Text("ZIP Code") },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        colors = fieldColors
                     )
                 }
             }
@@ -229,7 +260,8 @@ fun CreateItemScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(10.dp),
+                    colors = fieldColors
                 )
             }
 
@@ -241,14 +273,16 @@ fun CreateItemScreen(
                         onValueChange = { idFirst = it },
                         label = { Text("First Name") },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        colors = fieldColors
                     )
                     OutlinedTextField(
                         value = idLast,
                         onValueChange = { idLast = it },
                         label = { Text("Last Name") },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        colors = fieldColors
                     )
                 }
                 OutlinedTextField(
@@ -256,21 +290,24 @@ fun CreateItemScreen(
                     onValueChange = { idEmail = it },
                     label = { Text("Email") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(10.dp),
+                    colors = fieldColors
                 )
                 OutlinedTextField(
                     value = idPhone,
                     onValueChange = { idPhone = it },
                     label = { Text("Phone Number") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(10.dp),
+                    colors = fieldColors
                 )
                 OutlinedTextField(
                     value = idAddress,
                     onValueChange = { idAddress = it },
                     label = { Text("Address") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(10.dp),
+                    colors = fieldColors
                 )
             }
 
@@ -281,7 +318,8 @@ fun CreateItemScreen(
                     onValueChange = { notes = it },
                     label = { Text("Notes") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(10.dp),
+                    colors = fieldColors
                 )
             }
 
@@ -313,10 +351,10 @@ fun CreateItemScreen(
                     .fillMaxWidth()
                     .height(50.dp),
                 shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = NordDark),
+                colors = ButtonDefaults.buttonColors(containerColor = NordBlue),
                 enabled = title.isNotBlank()
             ) {
-                Text("Save to Vault", fontWeight = FontWeight.Bold)
+                Text("Save to Vault", fontWeight = FontWeight.Bold, color = Color.White)
             }
         }
     }
