@@ -427,6 +427,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return { success: true };
       }
 
+      case 'RESET_ACCOUNT': {
+        const { email, serverUrl } = message;
+        try {
+          await fetch(`${serverUrl || state.serverUrl}/api/v1/auth/reset`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+          });
+        } catch {}
+
+        state.isUnlocked = false;
+        state.isOfflineMode = false;
+        state.token = null;
+        state.vaultKey = null;
+        state.items = [];
+        await chrome.storage.session?.remove(['session']);
+        await chrome.storage.local.remove(['cachedVault']);
+        if (syncWebSocket) syncWebSocket.close();
+        return { success: true };
+      }
+
       case 'GET_ITEMS': {
         if (!state.isUnlocked) return { error: 'Locked', items: [] };
         return { items: state.items };

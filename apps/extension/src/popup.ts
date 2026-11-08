@@ -22,10 +22,12 @@ const btnToggleAuthMode = document.getElementById('btn-toggle-auth-mode')!;
 const authTitle = document.getElementById('auth-title')!;
 
 // Header NordPass
+const nordHeader = document.getElementById('nord-header')!;
 const btnVaultMenu = document.getElementById('btn-vault-menu')!;
 const vaultDropdown = document.getElementById('vault-dropdown')!;
 const selectedVaultLabel = document.getElementById('selected-vault-label')!;
 const userAvatar = document.getElementById('user-avatar')!;
+const btnForgotCreds = document.getElementById('btn-forgot-creds')!;
 
 // Búsqueda y Lista
 const vaultSearch = document.getElementById('vault-search') as HTMLInputElement;
@@ -136,12 +138,14 @@ async function init() {
 }
 
 function showAuthView() {
+  nordHeader.style.display = 'none';
   viewAuth.style.display = 'flex';
   viewVault.style.display = 'none';
   viewDetail.style.display = 'none';
 }
 
 function showVaultView() {
+  nordHeader.style.display = 'flex';
   viewAuth.style.display = 'none';
   viewVault.style.display = 'flex';
   viewDetail.style.display = 'none';
@@ -179,6 +183,41 @@ btnToggleAuthMode.addEventListener('click', () => {
     authTitle.textContent = 'Desbloquear Bóveda';
     btnAuthSubmit.textContent = 'Desbloquear';
     btnToggleAuthMode.textContent = 'Crear nueva cuenta';
+  }
+});
+
+btnForgotCreds.addEventListener('click', async () => {
+  const email = authEmail.value.trim();
+  if (!email) {
+    alert('Por favor ingresa tu correo electrónico primero.');
+    return;
+  }
+
+  const confirmReset = confirm(
+    `¿Deseas restablecer tu cuenta para ${email}?\n\nEsto te permitirá registrar una nueva contraseña maestra que recuerdes.`
+  );
+
+  if (!confirmReset) return;
+
+  btnForgotCreds.textContent = 'Restableciendo...';
+  try {
+    await chrome.runtime.sendMessage({
+      type: 'RESET_ACCOUNT',
+      email,
+      serverUrl: authServer.value.trim(),
+    });
+
+    isRegisterMode = true;
+    authTitle.textContent = 'Crear Nueva Cuenta';
+    btnAuthSubmit.textContent = 'Crear Bóveda Segura';
+    btnToggleAuthMode.textContent = 'Ya tengo cuenta (Iniciar sesión)';
+    authPassword.value = '';
+    authError.style.display = 'none';
+    showToast('✓ Cuenta restablecida. Crea tu nueva contraseña.');
+  } catch (err: any) {
+    alert(err.message || 'Error al restablecer');
+  } finally {
+    btnForgotCreds.textContent = '¿Olvidaste tu contraseña maestra? Restablecer cuenta';
   }
 });
 

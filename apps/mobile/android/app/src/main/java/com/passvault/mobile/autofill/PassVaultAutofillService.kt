@@ -80,14 +80,31 @@ class PassVaultAutofillService : AutofillService() {
         val targetQuery = detectedDomain ?: packageName
         val matchingLogins = VaultLocalCache.getMatchingLogins(targetQuery)
 
-        if (matchingLogins.isEmpty()) {
-            callback.onSuccess(null)
-            return
-        }
-
-        // 3. Construir la respuesta con los Datasets para sugerencias en Samsung Keyboard / Gboard
+        // 3. Construir la respuesta
         val responseBuilder = FillResponse.Builder()
 
+        // CONFIGURAR SAVEINFO PARA AUTOGUARDADO INTELIGENTE EN SAMSUNG S25 ULTRA
+        // Permite que cuando el usuario escriba credenciales en cualquier app (Instagram, Netflix, banco)
+        // o navegador, Android muestre automáticamente la ventana nativa: "¿Guardar en PassVault?"
+        val requiredIds = mutableListOf<AutofillId>()
+        if (passwordId != null) requiredIds.add(passwordId!!)
+
+        val optionalIds = mutableListOf<AutofillId>()
+        if (usernameId != null) optionalIds.add(usernameId!!)
+
+        if (requiredIds.isNotEmpty()) {
+            val saveInfoBuilder = SaveInfo.Builder(
+                SaveInfo.SAVE_DATA_TYPE_PASSWORD or SaveInfo.SAVE_DATA_TYPE_USERNAME,
+                requiredIds.toTypedArray()
+            )
+            if (optionalIds.isNotEmpty()) {
+                saveInfoBuilder.setOptionalIds(optionalIds.toTypedArray())
+            }
+            saveInfoBuilder.setDescription("Guardar en PassVault")
+            responseBuilder.setSaveInfo(saveInfoBuilder.build())
+        }
+
+        // Si tenemos credenciales coincidentes, poblar Datasets para sugerencias en Samsung Keyboard
         for (login in matchingLogins) {
             val presentation = RemoteViews(packageName, android.R.layout.simple_list_item_2).apply {
                 setTextViewText(android.R.id.text1, login.title)
@@ -115,15 +132,73 @@ class PassVaultAutofillService : AutofillService() {
             responseBuilder.addDataset(datasetBuilder.build())
         }
 
+        // Si no hay logins pero sí hay campos para autoguardar, enviar response con SaveInfo
+        if (matchingLogins.isEmpty() && requiredIds.isEmpty()) {
+            callback.onSuccess(null)
+            return
+        }
+
         callback.onSuccess(responseBuilder.build())
     }
 
     override fun onSaveRequest(request: SaveRequest, callback: SaveCallback) {
-        // Guarda credenciales nuevas introducidas en el celular y las envía al servidor de sincronización
-        val structure = request.fillContexts.lastOrNull()?.structure
-        if (structure != null) {
-            VaultLocalCache.captureAndSaveNewCredentials(structure)
+        // Intercepta las credenciales enviadas en el celular y las guarda automáticamente en la bóveda
+        val structure = request.fillContexts.lastOrNull()?.structure ?: run {
+            callback.onSuccess()
+            return
         }
+
+        var detectedUsername = ""
+        var detectedPassword = ""
+        var domainOrPackage = structure.activityComponent.packageName
+
+        fun extractValues(node: ViewNode) {
+            if (node.webDomain != null) {
+                domainOrPackage = node.webDomain
+            }
+
+            val hints = node.autofillHints?.toList() ?: emptyList()
+            val text = node.text?.toString() ?: node.autofillValue?.textValue?.toString() ?: ""
+            val idEntry = node.idEntry?.lowercase() ?: ""
+
+            if (detectedPassword.isEmpty()) {
+                if (hints.contains(ViewNode.AUTOFILL_HINT_PASSWORD) ||
+                    idEntry.contains("pass") || idEntry.contains("clave") || idEntry.contains("pwd")
+                ) {
+                    if (text.isNotEmpty()) detectedPassword = text
+                }
+            }
+
+            if (detectedUsername.isEmpty()) {
+                if (hints.contains(ViewNode.AUTOFILL_HINT_USERNAME) ||
+                    hints.contains(ViewNode.AUTOFILL_HINT_EMAIL_ADDRESS) ||
+                    idEntry.contains("user") || idEntry.contains("email") || idEntry.contains("login")
+                ) {
+                    if (text.isNotEmpty()) detectedUsername = text
+                }
+            }
+
+            for (i in 0 until node.childCount) {
+                extractValues(node.getChildAt(i))
+            }
+        }
+
+        for (i in 0 until structure.windowNodeCount) {
+            extractValues(structure.getWindowNodeAt(i).rootViewNode)
+        }
+
+        if (detectedPassword.isNotEmpty()) {
+            val title = domainOrPackage.replaceFirstChar { it.uppercase() }
+            val newLogin = MobileLoginCredential(
+                id = java.util.UUID.randomUUID().toString(),
+                title = title,
+                username = detectedUsername.ifEmpty { "Usuario móvil" },
+                password = detectedPassword,
+                domains = listOf(domainOrPackage)
+            )
+            VaultLocalCache.saveNewCredential(newLogin)
+        }
+
         callback.onSuccess()
     }
 }
@@ -155,8 +230,9 @@ object VaultLocalCache {
         }
     }
 
-    fun captureAndSaveNewCredentials(structure: AssistStructure) {
-        // Encola la sincronización en segundo plano con WorkManager
+    fun saveNewCredential(credential: MobileLoginCredential) {
+        cachedLogins.removeAll { it.title.equals(credential.title, ignoreCase = true) && it.username == credential.username }
+        cachedLogins.add(0, credential)
     }
 }
 

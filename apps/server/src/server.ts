@@ -137,6 +137,24 @@ export function buildServer(dbPath?: string) {
     };
   });
 
+  // 3.1 Reset de Cuenta si el usuario olvidó su contraseña maestra
+  fastify.post<{
+    Body: { email: string };
+  }>('/api/v1/auth/reset', async (req, reply) => {
+    const { email } = req.body || {};
+    if (!email) {
+      return reply.code(400).send({ error: 'Email requerido' });
+    }
+
+    const user = db.getUserByEmail(email);
+    if (user) {
+      const stmt = db.db.prepare('DELETE FROM users WHERE id = ?');
+      stmt.run(user.id);
+    }
+
+    return { success: true, message: 'Cuenta restablecida correctamente' };
+  });
+
   // Middleware auxiliar para verificar autenticación
   function requireAuth(req: any, reply: any): { userId: string; email: string } {
     const authHeader = req.headers.authorization;

@@ -7,8 +7,8 @@
 </head>
 <body>
   <div id="app">
-    <!-- Header estilo NordPass (Image 1) -->
-    <header class="nord-header">
+    <!-- Header estilo NordPass (Solo visible cuando la bóveda está desbloqueada) -->
+    <header class="nord-header" id="nord-header" style="display: none;">
       <div class="nord-vault-selector" id="btn-vault-menu">
         <span id="selected-vault-label">Vault</span>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -70,10 +70,17 @@
       </div>
     </header>
 
-    <!-- Vista de Autenticación (si la bóveda está bloqueada al reiniciar laptop) -->
+    <!-- Vista de Autenticación (Limpia, sin barras de navegación superiores) -->
     <div id="view-auth" class="nord-auth-view" style="display: none;">
-      <h1 id="auth-title">Desbloquear Bóveda</h1>
-      <p id="auth-sub">Tus credenciales protegidas con cifrado Zero-Knowledge</p>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 4px;">
+        <div style="width: 50px; height: 50px; background: #0c0f15; border-radius: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.2);">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+        </div>
+        <h1 id="auth-title" style="font-size: 20px; font-weight: 700;">Desbloquear Bóveda</h1>
+        <p id="auth-sub" style="font-size: 12px; color: var(--text-secondary);">Tus credenciales protegidas con cifrado Zero-Knowledge</p>
+      </div>
 
       <div class="nord-input-group">
         <label>Servidor de Sincronización</label>
@@ -93,9 +100,15 @@
       <div id="auth-error" style="color: var(--danger-red); font-size: 11px; display: none;"></div>
 
       <button class="nord-btn-main" id="btn-auth-submit">Desbloquear</button>
-      <button style="background: transparent; border: none; color: var(--accent-blue); cursor: pointer; font-size: 12px; margin-top: 4px;" id="btn-toggle-auth-mode">
-        Crear nueva cuenta
-      </button>
+      
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 4px;">
+        <button style="background: transparent; border: none; color: var(--accent-blue); cursor: pointer; font-size: 12px; font-weight: 600;" id="btn-toggle-auth-mode">
+          Crear nueva cuenta
+        </button>
+        <button style="background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 11px;" id="btn-forgot-creds">
+          ¿Olvidaste tu contraseña maestra? Restablecer cuenta
+        </button>
+      </div>
     </div>
 
     <!-- Vista Principal de Bóveda (Image 1) -->
