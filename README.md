@@ -100,3 +100,4 @@ Ejecuta:
 - Motor de entropía del generador de claves.
 - Heurísticas anti-phishing de dominios para autollenado.
 - Pruebas de integración del handshake Zero-Knowledge del servidor.
+

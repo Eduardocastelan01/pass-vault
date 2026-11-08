@@ -13,7 +13,10 @@ import {
 
 interface SessionState {
   isUnlocked: boolean;
+  isOfflineMode: boolean;
   email: string | null;
+  salt: string | null;
+  authHash: string | null;
   serverUrl: string;
   token: string | null;
   vaultKey: CryptoKey | null;
@@ -21,9 +24,20 @@ interface SessionState {
   lastSyncedAt: string | null;
 }
 
+interface LocalVaultCache {
+  email: string;
+  salt: string;
+  authHash: string;
+  items: EncryptedVaultItem[];
+  lastSyncedAt: string;
+}
+
 let state: SessionState = {
   isUnlocked: false,
+  isOfflineMode: false,
   email: null,
+  salt: null,
+  authHash: null,
   serverUrl: 'http://localhost:3000',
   token: null,
   vaultKey: null,
@@ -105,6 +119,20 @@ async function syncVault(): Promise<boolean> {
 
     state.items = decryptedList;
     state.lastSyncedAt = data.serverTime;
+
+    // Guardar copia local cifrada en el dispositivo para acceso 100% offline
+    if (state.email && state.salt && state.authHash) {
+      chrome.storage.local.set({
+        cachedVault: {
+          email: state.email,
+          salt: state.salt,
+          authHash: state.authHash,
+          items: rawItems,
+          lastSyncedAt: data.serverTime,
+        },
+      });
+    }
+
     return true;
   } catch (err) {
     console.error('[PassVault Sync Error]', err);
@@ -119,6 +147,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       case 'GET_STATUS': {
         return {
           isUnlocked: state.isUnlocked,
+          isOfflineMode: state.isOfflineMode,
           email: state.email,
           serverUrl: state.serverUrl,
           itemsCount: state.items.length,
@@ -147,10 +176,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         const data = await res.json();
         state.isUnlocked = true;
+        state.isOfflineMode = false;
         state.email = email;
+        state.salt = salt;
+        state.authHash = authHash;
         state.token = data.token;
         state.vaultKey = vaultKey;
         state.items = [];
+
+        // Guardar copia local inicial cifrada para acceso offline
+        chrome.storage.local.set({
+          cachedVault: {
+            email,
+            salt,
+            authHash,
+            items: [],
+            lastSyncedAt: new Date().toISOString(),
+          },
+        });
 
         connectWebSocket(data.token, state.serverUrl);
         return { success: true };
@@ -161,42 +204,112 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         state.serverUrl = serverUrl || state.serverUrl;
         chrome.storage.local.set({ serverUrl: state.serverUrl, email });
 
-        // 1. Obtener Salt con Prelogin
-        const preRes = await fetch(`${state.serverUrl}/api/v1/auth/prelogin`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email }),
-        });
+        // Intentar conectar con el servidor
+        let isOnline = true;
+        let salt = '';
 
-        if (!preRes.ok) throw new Error('Error al conectar con el servidor');
-        const { salt } = await preRes.json();
+        try {
+          const preRes = await fetch(`${state.serverUrl}/api/v1/auth/prelogin`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+          });
 
-        // 2. Derivar claves localmente (Zero-Knowledge)
-        const { vaultKey, authHash } = await deriveKeys(password, salt);
-
-        // 3. Login
-        const loginRes = await fetch(`${state.serverUrl}/api/v1/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, authHash }),
-        });
-
-        if (!loginRes.ok) {
-          const err = await loginRes.json();
-          throw new Error(err.error || 'Credenciales inválidas');
+          if (preRes.ok) {
+            const preData = await preRes.json();
+            salt = preData.salt;
+          } else {
+            isOnline = false;
+          }
+        } catch {
+          // Servidor apagado o inalcanzable (laptop apagada, sin red, etc.)
+          isOnline = false;
         }
 
-        const loginData = await loginRes.json();
-        state.isUnlocked = true;
-        state.email = email;
-        state.token = loginData.token;
-        state.vaultKey = vaultKey;
+        if (isOnline && salt) {
+          // MODO ONLINE: Derivar claves con el salt del servidor
+          const { vaultKey, authHash } = await deriveKeys(password, salt);
 
-        // 4. Descargar y descifrar bóveda
-        await syncVault();
-        connectWebSocket(loginData.token, state.serverUrl);
+          const loginRes = await fetch(`${state.serverUrl}/api/v1/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, authHash }),
+          });
 
-        return { success: true, count: state.items.length };
+          if (!loginRes.ok) {
+            const err = await loginRes.json();
+            throw new Error(err.error || 'Credenciales inválidas');
+          }
+
+          const loginData = await loginRes.json();
+          state.isUnlocked = true;
+          state.isOfflineMode = false;
+          state.email = email;
+          state.salt = salt;
+          state.authHash = authHash;
+          state.token = loginData.token;
+          state.vaultKey = vaultKey;
+
+          // Descargar y sincronizar
+          await syncVault();
+          connectWebSocket(loginData.token, state.serverUrl);
+
+          return { success: true, count: state.items.length, offline: false };
+        } else {
+          // MODO OFFLINE: El servidor está apagado (laptop apagada) o no hay internet
+          const cached = await new Promise<LocalVaultCache | null>((resolve) => {
+            chrome.storage.local.get(['cachedVault'], (res) => {
+              resolve(res.cachedVault || null);
+            });
+          });
+
+          if (!cached || cached.email.toLowerCase() !== email.toLowerCase()) {
+            throw new Error(
+              'El servidor está inalcanzable o apagado. Para iniciar sesión por primera vez se requiere conexión con el servidor.'
+            );
+          }
+
+          // Derivar claves localmente con el salt guardado
+          const { vaultKey, authHash } = await deriveKeys(password, cached.salt);
+
+          if (authHash !== cached.authHash) {
+            throw new Error('Contraseña maestra incorrecta.');
+          }
+
+          // Descifrar elementos de la copia local
+          const decryptedList: DecryptedVaultItem[] = [];
+          for (const raw of cached.items || []) {
+            if (raw.deleted) continue;
+            try {
+              const itemData = await decryptData(raw.encryptedPayload, vaultKey);
+              decryptedList.push({
+                id: raw.id,
+                type: raw.type,
+                name: raw.name,
+                favorite: raw.favorite,
+                folderId: raw.folderId,
+                createdAt: raw.createdAt,
+                updatedAt: raw.updatedAt,
+                version: raw.version,
+                data: itemData,
+              });
+            } catch (err) {
+              console.error('Error al descifrar offline', err);
+            }
+          }
+
+          state.isUnlocked = true;
+          state.isOfflineMode = true;
+          state.email = email;
+          state.salt = cached.salt;
+          state.authHash = authHash;
+          state.token = null;
+          state.vaultKey = vaultKey;
+          state.items = decryptedList;
+          state.lastSyncedAt = cached.lastSyncedAt;
+
+          return { success: true, count: state.items.length, offline: true };
+        }
       }
 
       case 'LOCK': {
@@ -225,7 +338,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
 
       case 'SAVE_ITEM': {
-        if (!state.isUnlocked || !state.vaultKey || !state.token) {
+        if (!state.isUnlocked || !state.vaultKey) {
           throw new Error('Bóveda bloqueada');
         }
 
@@ -233,30 +346,37 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const encryptedPayload = await encryptData(data, state.vaultKey);
         const now = new Date().toISOString();
 
-        const uploadRes = await fetch(`${state.serverUrl}/api/v1/vault/sync`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${state.token}`,
-          },
-          body: JSON.stringify({
-            items: [
-              {
-                id,
-                type,
-                name,
-                favorite,
-                encryptedPayload,
-                version: 1,
-                updatedAt: now,
+        const encryptedItem: EncryptedVaultItem = {
+          id,
+          type,
+          name,
+          favorite,
+          folderId: null,
+          createdAt: now,
+          updatedAt: now,
+          version: 1,
+          encryptedPayload,
+        };
+
+        // Si tenemos conexión y token, sincronizar con el servidor
+        if (!state.isOfflineMode && state.token) {
+          try {
+            await fetch(`${state.serverUrl}/api/v1/vault/sync`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${state.token}`,
               },
-            ],
-          }),
-        });
+              body: JSON.stringify({
+                items: [encryptedItem],
+              }),
+            });
+          } catch (syncErr) {
+            console.warn('[PassVault] No se pudo sincronizar inmediatamente, guardando localmente', syncErr);
+          }
+        }
 
-        if (!uploadRes.ok) throw new Error('Error al sincronizar con el servidor');
-
-        // Actualizar estado local
+        // Actualizar estado en memoria
         const existingIndex = state.items.findIndex((i) => i.id === id);
         const newItem: DecryptedVaultItem = {
           id,
@@ -275,6 +395,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         } else {
           state.items.unshift(newItem);
         }
+
+        // Actualizar caché local cifrada
+        chrome.storage.local.get(['cachedVault'], (res) => {
+          const cached: LocalVaultCache = res.cachedVault || {
+            email: state.email || '',
+            salt: state.salt || '',
+            authHash: state.authHash || '',
+            items: [],
+            lastSyncedAt: now,
+          };
+          const rawIndex = cached.items.findIndex((i) => i.id === id);
+          if (rawIndex >= 0) {
+            cached.items[rawIndex] = encryptedItem;
+          } else {
+            cached.items.unshift(encryptedItem);
+          }
+          cached.lastSyncedAt = now;
+          chrome.storage.local.set({ cachedVault: cached });
+        });
 
         return { success: true, item: newItem };
       }

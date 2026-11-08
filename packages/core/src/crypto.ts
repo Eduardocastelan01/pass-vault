@@ -37,28 +37,73 @@ export function hexToUint8Array(hex: string): Uint8Array {
 }
 
 /**
+ * Deriva una clave maestra usando PBKDF2 nativo de WebCrypto (600,000 iteraciones SHA-256).
+ * Cumple con la recomendación oficial OWASP 2023+ y el estándar Bitwarden.
+ * Al ejecutarse 100% en el motor C++ del navegador, NUNCA viola CSP de extensiones ni requiere WebAssembly.
+ */
+export async function deriveWithPBKDF2(
+  password: string,
+  saltBytes: Uint8Array,
+  iterations = 600000
+): Promise<Uint8Array> {
+  const enc = new TextEncoder();
+  const baseKey = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(password),
+    'PBKDF2',
+    false,
+    ['deriveBits']
+  );
+
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: saltBytes as unknown as BufferSource,
+      iterations,
+      hash: 'SHA-256',
+    },
+    baseKey,
+    256 // 256 bits = 32 bytes
+  );
+
+  return new Uint8Array(derivedBits);
+}
+
+/**
  * Deriva las claves criptográficas a partir de la Contraseña Maestra y el Salt del usuario.
- * Utiliza Argon2id (KDF resistente a ataques de GPU/ASIC) y HKDF para separar
+ * Utiliza PBKDF2 nativo (OWASP) o Argon2id y HKDF para separar
  * la clave de cifrado local de la clave de autenticación que se envía al servidor.
  */
 export async function deriveKeys(
   masterPassword: string,
-  saltHex: string
+  saltHex: string,
+  algorithm: 'pbkdf2' | 'argon2id' = 'pbkdf2'
 ): Promise<KeyDerivationResult> {
   const saltBytes = hexToUint8Array(saltHex);
+  let masterKeyBytes: Uint8Array;
 
-  // 1. Derivación principal con Argon2id
-  const masterKeyHex = await argon2id({
-    password: masterPassword,
-    salt: saltBytes,
-    parallelism: 4,
-    iterations: 3,
-    memorySize: 65536, // 64 MB
-    hashLength: 32, // 256 bits
-    outputType: 'hex',
-  });
+  if (algorithm === 'argon2id') {
+    try {
+      const masterKeyHex = await argon2id({
+        password: masterPassword,
+        salt: saltBytes,
+        parallelism: 4,
+        iterations: 3,
+        memorySize: 65536, // 64 MB
+        hashLength: 32, // 256 bits
+        outputType: 'hex',
+      });
+      masterKeyBytes = hexToUint8Array(masterKeyHex);
+    } catch {
+      // Fallback transparente a PBKDF2 nativo si el navegador restringe WebAssembly por CSP
+      masterKeyBytes = await deriveWithPBKDF2(masterPassword, saltBytes);
+    }
+  } else {
+    // PBKDF2 nativo de WebCrypto: 100% compatible con extensiones, cero violaciones de CSP
+    masterKeyBytes = await deriveWithPBKDF2(masterPassword, saltBytes);
+  }
 
-  const masterKeyBytes = hexToUint8Array(masterKeyHex);
+  const masterKeyHex = bufferToHex(masterKeyBytes.buffer as ArrayBuffer);
 
   // 2. Importar como clave base para HKDF
   const baseKey = await crypto.subtle.importKey(

@@ -159,3 +159,4 @@ object VaultLocalCache {
         // Encola la sincronización en segundo plano con WorkManager
     }
 }
+

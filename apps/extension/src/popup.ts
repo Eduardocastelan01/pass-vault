@@ -153,7 +153,7 @@ btnAuthSubmit.addEventListener('click', async () => {
     return;
   }
 
-  btnAuthSubmit.textContent = 'Procesando derivación Argon2id...';
+  btnAuthSubmit.textContent = 'Derivando claves criptográficas...';
   (btnAuthSubmit as HTMLButtonElement).disabled = true;
 
   try {
@@ -171,7 +171,11 @@ btnAuthSubmit.addEventListener('click', async () => {
 
     showVaultView();
     await loadItems();
-    showToast('✓ Bóveda sincronizada');
+    if (res.offline) {
+      showToast('✓ Bóveda accesible (Modo Offline)');
+    } else {
+      showToast('✓ Bóveda sincronizada');
+    }
   } catch (err: any) {
     authError.textContent = err.message || 'Error al autenticar';
     authError.style.display = 'block';
