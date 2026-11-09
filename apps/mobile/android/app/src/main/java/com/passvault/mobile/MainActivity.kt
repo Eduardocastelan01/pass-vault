@@ -79,12 +79,17 @@ fun MainAppNav(
                     isLoading = true
                     errorMessage = null
                     coroutineScope.launch {
-                        val res = repository.unlock(pass, email)
-                        isLoading = false
-                        if (res.isSuccess) {
-                            currentScreen = Screen.VAULT
-                        } else {
-                            errorMessage = res.exceptionOrNull()?.message ?: "Error al desbloquear"
+                        try {
+                            val res = repository.unlock(pass, email)
+                            isLoading = false
+                            if (res.isSuccess) {
+                                currentScreen = Screen.VAULT
+                            } else {
+                                errorMessage = res.exceptionOrNull()?.message ?: "Error al desbloquear"
+                            }
+                        } catch (t: Throwable) {
+                            isLoading = false
+                            errorMessage = t.message ?: "Error al procesar claves"
                         }
                     }
                 },

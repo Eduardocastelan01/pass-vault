@@ -48,9 +48,9 @@ object CryptoEngine {
         val masterKeyBytes = ByteArray(32)
         generator.generateBytes(masterPassword.toByteArray(StandardCharsets.UTF_8), masterKeyBytes, 0, masterKeyBytes.size)
 
-        // 2. HKDF Extract: PRK = HMAC-SHA256(key = ByteArray(0), data = masterKeyBytes)
+        // 2. HKDF Extract: PRK = HMAC-SHA256(key = ByteArray(32), data = masterKeyBytes)
         val prkMac = Mac.getInstance("HmacSHA256")
-        prkMac.init(SecretKeySpec(ByteArray(0), "HmacSHA256"))
+        prkMac.init(SecretKeySpec(ByteArray(32), "HmacSHA256"))
         val prk = prkMac.doFinal(masterKeyBytes)
 
         // 3. HKDF Expand para vaultKey (AES-256-GCM) con info: "vault-encryption"
